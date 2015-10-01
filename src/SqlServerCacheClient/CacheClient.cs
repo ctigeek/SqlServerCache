@@ -21,42 +21,36 @@ namespace SqlServerCacheClient
         private readonly string connectionString;
         private readonly SHA256Managed hasher;
         public bool CompressBinaryIfNecessary { get; set; }
+        public bool DontThrowOnValueOverflow { get; set; }
         public string SchemaName { get; set; }
 
         public CacheClient(string connectionStringName, string cacheKeyPrefix)
         {
             SchemaName = "cache";
-            this.CacheKeyPrefix = cacheKeyPrefix;
-            this.ConnectionStringName = connectionStringName;
+            DontThrowOnValueOverflow = true;
+            CacheKeyPrefix = cacheKeyPrefix;
+            ConnectionStringName = connectionStringName;
+            if (ConfigurationManager.ConnectionStrings[ConnectionStringName] == null) throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
             connectionString = ConfigurationManager.ConnectionStrings[ConnectionStringName].ConnectionString;
             hasher = new SHA256Managed();
         }
 
         public async Task SetCounterAsync(string key, long count, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildSetCounterCommand(conn, key, count, timeToLive);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildSetCounterCommand(key, count, timeToLive);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void SetCounter(string key, long count, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildSetCounterCommand(conn, key, count, timeToLive);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildSetCounterCommand(key, count, timeToLive);
+            ExecuteNonQueryCommand(comm);
         }
 
-        private SqlCommand BuildSetCounterCommand(SqlConnection conn, string key, long count, TimeSpan timeToLive)
+        private SqlCommand BuildSetCounterCommand(string key, long count, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".SetCounter", conn);
+            var comm = new SqlCommand(SchemaName + ".SetCounter");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("count", count);
             comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
@@ -65,93 +59,66 @@ namespace SqlServerCacheClient
 
         public async Task DeleteCounterAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildDeleteCounterCommand(conn, key);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildDeleteCounterCommand(key);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteCounter(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildDeleteCounterCommand(conn, key);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildDeleteCounterCommand(key);
+            ExecuteNonQueryCommand(comm);
         }
 
-        private SqlCommand BuildDeleteCounterCommand(SqlConnection conn, string key)
+        private SqlCommand BuildDeleteCounterCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".DeleteCounter", conn);
+            var comm = new SqlCommand(SchemaName + ".DeleteCounter");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
 
         public async Task<long?> RetrieveCounterAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildRetrieveCounterCommand(conn, key);
-                var result = await ExecuteScalarCommandAsync(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return (long)result;
-            }
+            var comm = BuildRetrieveCounterCommand(key);
+            var result = await ExecuteScalarCommandAsync(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return (long) result;
         }
 
         public long? RetrieveCounter(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildRetrieveCounterCommand(conn, key);
-                var result = ExecuteScalarCommand(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return (long)result;
-            }
+            var comm = BuildRetrieveCounterCommand(key);
+            var result = ExecuteScalarCommand(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return (long) result;
         }
 
-        private SqlCommand BuildRetrieveCounterCommand(SqlConnection conn, string key)
+        private SqlCommand BuildRetrieveCounterCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".RetrieveCounter", conn);
+            var comm = new SqlCommand(SchemaName + ".RetrieveCounter");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
 
         public async Task<long> IncrementCounterAsync(string key, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildIncrementCounterCommand(conn, key, timeToLive);
-                var result = await ExecuteScalarCommandAsync(comm);
-                return (long)result;
-            }
+            var comm = BuildIncrementCounterCommand(key, timeToLive);
+            var result = await ExecuteScalarCommandAsync(comm);
+            return (long) result;
         }
 
         public long IncrementCounter(string key, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildIncrementCounterCommand(conn, key, timeToLive);
-                var result = ExecuteScalarCommand(comm);
-                return (long)result;
-            }
+            var comm = BuildIncrementCounterCommand(key, timeToLive);
+            var result = ExecuteScalarCommand(comm);
+            return (long) result;
         }
 
-        private SqlCommand BuildIncrementCounterCommand(SqlConnection conn, string key, TimeSpan timeToLive)
+        private SqlCommand BuildIncrementCounterCommand(string key, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".IncrementCounter", conn);
+            var comm = new SqlCommand(SchemaName + ".IncrementCounter");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("newExpiration", DateTime.Now.Add(timeToLive));
             return comm;
@@ -159,31 +126,22 @@ namespace SqlServerCacheClient
 
         public async Task<long> DeccrementCounterAsync(string key, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildDecrementCounterCommand(conn, key, timeToLive);
-                var result = await ExecuteScalarCommandAsync(comm);
-                return (long)result;
-            }
+            var comm = BuildDecrementCounterCommand(key, timeToLive);
+            var result = await ExecuteScalarCommandAsync(comm);
+            return (long) result;
         }
 
         public long DecrementCounter(string key, TimeSpan timeToLive)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildDecrementCounterCommand(conn, key, timeToLive);
-                var result = ExecuteScalarCommand(comm);
-                return (long)result;
-            }
+            var comm = BuildDecrementCounterCommand(key, timeToLive);
+            var result = ExecuteScalarCommand(comm);
+            return (long) result;
         }
 
-        private SqlCommand BuildDecrementCounterCommand(SqlConnection conn, string key, TimeSpan timeToLive)
+        private SqlCommand BuildDecrementCounterCommand(string key, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".DeccrementCounter", conn);
+            var comm = new SqlCommand(SchemaName + ".DeccrementCounter");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("newExpiration", DateTime.Now.Add(timeToLive));
             return comm;
@@ -192,30 +150,21 @@ namespace SqlServerCacheClient
         public async Task SetTextAsync(string key, string value, TimeSpan timeToLive)
         {
             if (value.Length > TextMaxLength) throw new ArgumentOutOfRangeException("value", value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildSaveCacheTextCommand(conn, key, value, timeToLive);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void SetText(string key, string value, TimeSpan timeToLive)
         {
             if (value.Length > TextMaxLength) throw new ArgumentOutOfRangeException("value", value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildSaveCacheTextCommand(conn, key, value, timeToLive);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
+            ExecuteNonQueryCommand(comm);
         }
 
-        private SqlCommand BuildSaveCacheTextCommand(SqlConnection conn, string key, string value, TimeSpan timeToLive)
+        private SqlCommand BuildSaveCacheTextCommand(string key, string value, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".SaveCacheText", conn);
+            var comm = new SqlCommand(SchemaName + ".SaveCacheText");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("body", value);
             comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
@@ -224,62 +173,44 @@ namespace SqlServerCacheClient
 
         public async Task DeleteTextAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildDeleteCacheTextCommand(conn, key);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildDeleteCacheTextCommand(key);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteText(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildDeleteCacheTextCommand(conn, key);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildDeleteCacheTextCommand(key);
+            ExecuteNonQueryCommand(comm);
         }
 
-        private SqlCommand BuildDeleteCacheTextCommand(SqlConnection conn, string key)
+        private SqlCommand BuildDeleteCacheTextCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".DeleteCacheText", conn);
+            var comm = new SqlCommand(SchemaName + ".DeleteCacheText");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
 
         public async Task<string> RetrieveTextAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildRetrieveCacheTextCommand(conn, key);
-                var result = await ExecuteScalarCommandAsync(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return (string)result;
-            }
+            var comm = BuildRetrieveCacheTextCommand(key);
+            var result = await ExecuteScalarCommandAsync(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return (string) result;
         }
 
         public string RetrieveText(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildRetrieveCacheTextCommand(conn, key);
-                var result = ExecuteScalarCommand(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return (string)result;
-            }
+            var comm = BuildRetrieveCacheTextCommand(key);
+            var result = ExecuteScalarCommand(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return (string) result;
         }
 
-        private SqlCommand BuildRetrieveCacheTextCommand(SqlConnection conn, string key)
+        private SqlCommand BuildRetrieveCacheTextCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".RetrieveCacheText", conn);
+            var comm = new SqlCommand(SchemaName + ".RetrieveCacheText");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
@@ -296,12 +227,8 @@ namespace SqlServerCacheClient
             if (compressedBlob.Length > BlobMaxLength)
                 throw new ArgumentOutOfRangeException("blob", compressedBlob.Length,
                     "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildSaveCacheBinaryCommand(conn, key, compressedBlob, timeToLive);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public async Task SetBinaryAsync(string key, object value, TimeSpan timeToLive)
@@ -336,19 +263,14 @@ namespace SqlServerCacheClient
             if (compressedBlob.Length > BlobMaxLength)
                 throw new ArgumentOutOfRangeException("blob", compressedBlob.Length,
                     "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildSaveCacheBinaryCommand(conn, key, compressedBlob, timeToLive);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
+            ExecuteNonQueryCommand(comm);
         }
 
-        public SqlCommand BuildSaveCacheBinaryCommand(SqlConnection conn, string key, byte[] compressedBlob, TimeSpan timeToLive)
+        public SqlCommand BuildSaveCacheBinaryCommand(string key, byte[] compressedBlob, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".SaveCacheBinary", conn);
+            var comm = new SqlCommand(SchemaName + ".SaveCacheBinary");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("blob", compressedBlob);
             comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
@@ -357,29 +279,20 @@ namespace SqlServerCacheClient
 
         public async Task DeleteBinaryAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildDeleteCacheBinaryCommand(conn, key);
-                await ExecuteNonQueryCommandAsync(comm);
-            }
+            var comm = BuildDeleteCacheBinaryCommand(key);
+            await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteBinary(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildDeleteCacheBinaryCommand(conn, key);
-                ExecuteNonQueryCommand(comm);
-            }
+            var comm = BuildDeleteCacheBinaryCommand(key);
+            ExecuteNonQueryCommand(comm);
         }
 
-        private SqlCommand BuildDeleteCacheBinaryCommand(SqlConnection conn, string key)
+        private SqlCommand BuildDeleteCacheBinaryCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".DeleteCacheBinary", conn);
+            var comm = new SqlCommand(SchemaName + ".DeleteCacheBinary");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
@@ -392,14 +305,10 @@ namespace SqlServerCacheClient
 
         public async Task<byte[]> RetrieveBinaryAsync(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                await conn.OpenAsync();
-                var comm = BuildRetrieveCacheBinaryCommand(conn, key);
-                var result = await ExecuteScalarCommandAsync(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return DecompressBytes((byte[])result);
-            }
+            var comm = BuildRetrieveCacheBinaryCommand(key);
+            var result = await ExecuteScalarCommandAsync(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return DecompressBytes((byte[]) result);
         }
 
         public async Task<object> RetrieveObjectAsync(string key)
@@ -422,14 +331,10 @@ namespace SqlServerCacheClient
 
         public byte[] RetrieveBinary(string key)
         {
-            using (var conn = new SqlConnection(connectionString))
-            {
-                conn.Open();
-                var comm = BuildRetrieveCacheBinaryCommand(conn, key);
+                var comm = BuildRetrieveCacheBinaryCommand(key);
                 var result = ExecuteScalarCommand(comm);
                 if (result == null || result == DBNull.Value) return null;
                 return DecompressBytes((byte[])result);
-            }
         }
 
         public object RetrieveObject(string key)
@@ -444,11 +349,10 @@ namespace SqlServerCacheClient
             }
         }
 
-        private SqlCommand BuildRetrieveCacheBinaryCommand(SqlConnection conn, string key)
+        private SqlCommand BuildRetrieveCacheBinaryCommand(string key)
         {
-            var comm = new SqlCommand(SchemaName + ".RetrieveCacheBinary", conn);
+            var comm = new SqlCommand(SchemaName + ".RetrieveCacheBinary");
             comm.CommandType = CommandType.StoredProcedure;
-            comm.CommandTimeout = 3;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             return comm;
         }
@@ -457,7 +361,13 @@ namespace SqlServerCacheClient
         {
             try
             {
-                command.ExecuteNonQuery();
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    command.CommandTimeout = 3;
+                    command.Connection = conn;
+                    command.ExecuteNonQuery();
+                }
             }
             catch
             {
@@ -468,7 +378,13 @@ namespace SqlServerCacheClient
         {
             try
             {
-                await command.ExecuteNonQueryAsync();
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    await conn.OpenAsync();
+                    command.CommandTimeout = 3;
+                    command.Connection = conn;
+                    await command.ExecuteNonQueryAsync();
+                }
             }
             catch
             {
@@ -479,8 +395,14 @@ namespace SqlServerCacheClient
         {
             try
             {
-                var result = command.ExecuteScalar();
-                return result;
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    command.CommandTimeout = 3;
+                    command.Connection = conn;
+                    var result = command.ExecuteScalar();
+                    return result;
+                }
             }
             catch
             {
@@ -492,8 +414,14 @@ namespace SqlServerCacheClient
         {
             try
             {
-                var result = await command.ExecuteScalarAsync();
-                return result;
+                using (var conn = new SqlConnection(connectionString))
+                {
+                    await conn.OpenAsync();
+                    command.CommandTimeout = 3;
+                    command.Connection = conn;
+                    var result = await command.ExecuteScalarAsync();
+                    return result;
+                }
             }
             catch
             {
