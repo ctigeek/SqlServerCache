@@ -361,6 +361,25 @@ namespace SqlServerCacheClient
             return comm;
         }
 
+        public void ClearCache()
+        {
+            var comm = BuildClearCacheCommand();
+            ExecuteNonQueryCommand(comm);
+        }
+
+        public async Task ClearCacheAsync()
+        {
+            var comm = BuildClearCacheCommand();
+            await ExecuteNonQueryCommandAsync(comm);
+        }
+
+        private SqlCommand BuildClearCacheCommand()
+        {
+            var comm = new SqlCommand(SchemaName + ".ClearCache");
+            comm.CommandType = CommandType.StoredProcedure;
+            return comm;
+        }
+
         private void ExecuteNonQueryCommand(SqlCommand command)
         {
             try

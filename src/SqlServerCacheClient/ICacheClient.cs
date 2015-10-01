@@ -1,5 +1,4 @@
 using System;
-using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace SqlServerCacheClient
@@ -39,5 +38,7 @@ namespace SqlServerCacheClient
         string RetrieveBinaryString(string key);
         byte[] RetrieveBinary(string key);
         object RetrieveObject(string key);
+        void ClearCache();
+        Task ClearCacheAsync();
     }
 }
