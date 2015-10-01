@@ -12,11 +12,11 @@ using System.Threading.Tasks;
 
 namespace SqlServerCacheClient
 {
-    public class CacheClient
+    public class CacheClient : ICacheClient
     {
+        public const string DefaultSchemaName = "cache";
         public const int BlobMaxLength = 7950;
         public const int TextMaxLength = 4950;
-        public readonly string ConnectionStringName;
         public readonly string CacheKeyPrefix;
         private readonly string connectionString;
         private readonly SHA256Managed hasher;
@@ -24,15 +24,19 @@ namespace SqlServerCacheClient
         public bool DontThrowOnValueOverflow { get; set; }
         public string SchemaName { get; set; }
 
-        public CacheClient(string connectionStringName, string cacheKeyPrefix)
+        public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName)
         {
-            SchemaName = "cache";
+            hasher = new SHA256Managed();
+            SchemaName = schemaName;
             DontThrowOnValueOverflow = true;
             CacheKeyPrefix = cacheKeyPrefix;
-            ConnectionStringName = connectionStringName;
-            if (ConfigurationManager.ConnectionStrings[ConnectionStringName] == null) throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
-            connectionString = ConfigurationManager.ConnectionStrings[ConnectionStringName].ConnectionString;
-            hasher = new SHA256Managed();
+            this.connectionString = connectionString;
+        }
+
+        public CacheClient(string connectionStringName, string cacheKeyPrefix) : this(string.Empty, cacheKeyPrefix, DefaultSchemaName)
+        {
+            if (ConfigurationManager.ConnectionStrings[connectionStringName] == null) throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
+            connectionString = ConfigurationManager.ConnectionStrings[connectionStringName].ConnectionString;
         }
 
         public async Task SetCounterAsync(string key, long count, TimeSpan timeToLive)
@@ -124,7 +128,7 @@ namespace SqlServerCacheClient
             return comm;
         }
 
-        public async Task<long> DeccrementCounterAsync(string key, TimeSpan timeToLive)
+        public async Task<long> DecrementCounterAsync(string key, TimeSpan timeToLive)
         {
             var comm = BuildDecrementCounterCommand(key, timeToLive);
             var result = await ExecuteScalarCommandAsync(comm);
@@ -267,7 +271,7 @@ namespace SqlServerCacheClient
             ExecuteNonQueryCommand(comm);
         }
 
-        public SqlCommand BuildSaveCacheBinaryCommand(string key, byte[] compressedBlob, TimeSpan timeToLive)
+        private SqlCommand BuildSaveCacheBinaryCommand(string key, byte[] compressedBlob, TimeSpan timeToLive)
         {
             var comm = new SqlCommand(SchemaName + ".SaveCacheBinary");
             comm.CommandType = CommandType.StoredProcedure;
