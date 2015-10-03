@@ -15,6 +15,7 @@ namespace SqlServerCacheClient
 {
     public class CacheClient : ICacheClient
     {
+        private const int CommandTimeout = 5;
         public const string DefaultSchemaName = "cache";
         public const int BlobMaxLength = 7980;
         public const int TextMaxLength = 3950;
@@ -395,7 +396,7 @@ namespace SqlServerCacheClient
                 using (var conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    command.CommandTimeout = 3;
+                    command.CommandTimeout = CommandTimeout;
                     command.Connection = conn;
                     command.ExecuteNonQuery();
                 }
@@ -413,7 +414,7 @@ namespace SqlServerCacheClient
                 using (var conn = new SqlConnection(connectionString))
                 {
                     await conn.OpenAsync();
-                    command.CommandTimeout = 3;
+                    command.CommandTimeout = CommandTimeout;
                     command.Connection = conn;
                     await command.ExecuteNonQueryAsync();
                 }
@@ -431,7 +432,7 @@ namespace SqlServerCacheClient
                 using (var conn = new SqlConnection(connectionString))
                 {
                     conn.Open();
-                    command.CommandTimeout = 3;
+                    command.CommandTimeout = CommandTimeout;
                     command.Connection = conn;
                     var result = command.ExecuteScalar();
                     return result;
@@ -451,7 +452,7 @@ namespace SqlServerCacheClient
                 using (var conn = new SqlConnection(connectionString))
                 {
                     await conn.OpenAsync();
-                    command.CommandTimeout = 3;
+                    command.CommandTimeout = CommandTimeout;
                     command.Connection = conn;
                     var result = await command.ExecuteScalarAsync();
                     return result;
