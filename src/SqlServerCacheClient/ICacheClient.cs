@@ -8,6 +8,7 @@ namespace SqlServerCacheClient
         bool CompressBinaryIfNecessary { get; set; }
         bool DontThrowOnValueOverflow { get; set; }
         string SchemaName { get; set; }
+        Task SetCounterAsync(string key, long count);
         Task SetCounterAsync(string key, long count, TimeSpan timeToLive);
         void SetCounter(string key, long count, TimeSpan timeToLive);
         Task DeleteCounterAsync(string key);
@@ -34,10 +35,10 @@ namespace SqlServerCacheClient
         void DeleteBinary(string key);
         Task<string> RetrieveBinaryStringAsync(string key);
         Task<byte[]> RetrieveBinaryAsync(string key);
-        Task<object> RetrieveObjectAsync(string key);
+        Task<T> RetrieveObjectAsync<T>(string key) where T : class;
         string RetrieveBinaryString(string key);
         byte[] RetrieveBinary(string key);
-        object RetrieveObject(string key);
+        T RetrieveObject<T>(string key) where T : class;
         void ClearCache();
         Task ClearCacheAsync();
     }

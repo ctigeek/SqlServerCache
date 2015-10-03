@@ -2,6 +2,7 @@
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -15,14 +16,15 @@ namespace SqlServerCacheClient
     public class CacheClient : ICacheClient
     {
         public const string DefaultSchemaName = "cache";
-        public const int BlobMaxLength = 7950;
-        public const int TextMaxLength = 4950;
+        public const int BlobMaxLength = 7980;
+        public const int TextMaxLength = 3950;
         public readonly string CacheKeyPrefix;
         private readonly string connectionString;
         private readonly SHA256Managed hasher;
         public bool CompressBinaryIfNecessary { get; set; }
         public bool DontThrowOnValueOverflow { get; set; }
         public string SchemaName { get; set; }
+        public TimeSpan DefaultTimeToLive { get; set; }
 
         public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName)
         {
@@ -35,8 +37,14 @@ namespace SqlServerCacheClient
 
         public CacheClient(string connectionStringName, string cacheKeyPrefix) : this(string.Empty, cacheKeyPrefix, DefaultSchemaName)
         {
-            if (ConfigurationManager.ConnectionStrings[connectionStringName] == null) throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
+            if (ConfigurationManager.ConnectionStrings[connectionStringName] == null)
+                throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
             connectionString = ConfigurationManager.ConnectionStrings[connectionStringName].ConnectionString;
+        }
+
+        public async Task SetCounterAsync(string key, long count)
+        {
+            await SetCounterAsync(key, count, DefaultTimeToLive);
         }
 
         public async Task SetCounterAsync(string key, long count, TimeSpan timeToLive)
@@ -57,7 +65,7 @@ namespace SqlServerCacheClient
             comm.CommandType = CommandType.StoredProcedure;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("count", count);
-            comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
+            comm.Parameters.AddWithValue("expiration", DateTime.UtcNow.Add(timeToLive));
             return comm;
         }
 
@@ -86,7 +94,7 @@ namespace SqlServerCacheClient
             var comm = BuildRetrieveCounterCommand(key);
             var result = await ExecuteScalarCommandAsync(comm);
             if (result == null || result == DBNull.Value) return null;
-            return (long) result;
+            return (long?) result;
         }
 
         public long? RetrieveCounter(string key)
@@ -124,7 +132,7 @@ namespace SqlServerCacheClient
             var comm = new SqlCommand(SchemaName + ".IncrementCounter");
             comm.CommandType = CommandType.StoredProcedure;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
-            comm.Parameters.AddWithValue("newExpiration", DateTime.Now.Add(timeToLive));
+            comm.Parameters.AddWithValue("newExpiration", DateTime.UtcNow.Add(timeToLive));
             return comm;
         }
 
@@ -144,10 +152,10 @@ namespace SqlServerCacheClient
 
         private SqlCommand BuildDecrementCounterCommand(string key, TimeSpan timeToLive)
         {
-            var comm = new SqlCommand(SchemaName + ".DeccrementCounter");
+            var comm = new SqlCommand(SchemaName + ".DecrementCounter");
             comm.CommandType = CommandType.StoredProcedure;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
-            comm.Parameters.AddWithValue("newExpiration", DateTime.Now.Add(timeToLive));
+            comm.Parameters.AddWithValue("newExpiration", DateTime.UtcNow.Add(timeToLive));
             return comm;
         }
 
@@ -171,7 +179,7 @@ namespace SqlServerCacheClient
             comm.CommandType = CommandType.StoredProcedure;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("body", value);
-            comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
+            comm.Parameters.AddWithValue("expiration", DateTime.UtcNow.Add(timeToLive));
             return comm;
         }
 
@@ -277,7 +285,7 @@ namespace SqlServerCacheClient
             comm.CommandType = CommandType.StoredProcedure;
             comm.Parameters.AddWithValue("uid", GetUidKey(key));
             comm.Parameters.AddWithValue("blob", compressedBlob);
-            comm.Parameters.AddWithValue("expiration", DateTime.Now.Add(timeToLive));
+            comm.Parameters.AddWithValue("expiration", DateTime.UtcNow.Add(timeToLive));
             return comm;
         }
 
@@ -315,15 +323,15 @@ namespace SqlServerCacheClient
             return DecompressBytes((byte[]) result);
         }
 
-        public async Task<object> RetrieveObjectAsync(string key)
+        public async Task<T> RetrieveObjectAsync<T>(string key) where T : class
         {
             var bytes = await RetrieveBinaryAsync(key);
-            if (bytes == null) return null;
+            if (bytes == null) return (T)null;
             using (var memStream = new MemoryStream(bytes))
             {
                 memStream.Seek(0, SeekOrigin.Begin);
                 var obj = new BinaryFormatter().Deserialize(memStream);
-                return obj;
+                return (T)obj;
             }
         }
 
@@ -335,21 +343,21 @@ namespace SqlServerCacheClient
 
         public byte[] RetrieveBinary(string key)
         {
-                var comm = BuildRetrieveCacheBinaryCommand(key);
-                var result = ExecuteScalarCommand(comm);
-                if (result == null || result == DBNull.Value) return null;
-                return DecompressBytes((byte[])result);
+            var comm = BuildRetrieveCacheBinaryCommand(key);
+            var result = ExecuteScalarCommand(comm);
+            if (result == null || result == DBNull.Value) return null;
+            return DecompressBytes((byte[]) result);
         }
 
-        public object RetrieveObject(string key)
+        public T RetrieveObject<T>(string key) where T : class
         {
             var bytes = RetrieveBinary(key);
-            if (bytes == null) return null;
+            if (bytes == null) return (T) null;
             using (var memStream = new MemoryStream(bytes))
             {
                 memStream.Seek(0, SeekOrigin.Begin);
                 var obj = new BinaryFormatter().Deserialize(memStream);
-                return obj;
+                return (T) obj;
             }
         }
 
@@ -392,8 +400,9 @@ namespace SqlServerCacheClient
                     command.ExecuteNonQuery();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex.ToString());
             }
         }
 
@@ -409,8 +418,9 @@ namespace SqlServerCacheClient
                     await command.ExecuteNonQueryAsync();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex.ToString());
             }
         }
 
@@ -427,8 +437,9 @@ namespace SqlServerCacheClient
                     return result;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex.ToString());
                 return null;
             }
         }
@@ -446,8 +457,9 @@ namespace SqlServerCacheClient
                     return result;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine(ex.ToString());
                 return null;
             }
         }
