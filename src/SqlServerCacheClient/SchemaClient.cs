@@ -174,23 +174,25 @@ END";
             this.schemaName = schemaName;
         }
 
-        public void CreateSchema()
+        public void CreateSchema(Action<string> updateStatus)
         {
             using (var conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 var comm = new SqlCommand(string.Format(CreateSchemaNameFormatString, schemaName), conn);
                 comm.ExecuteNonQuery();
+                updateStatus?.Invoke("Schema `" + schemaName + "` has been created.");
             }
         }
 
-        public void DropSchema()
+        public void DropSchema(Action<string> updateStatus)
         {
             using (var conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 var comm = new SqlCommand(string.Format(DropSchemaNameFormatString, schemaName), conn);
                 comm.ExecuteNonQuery();
+                updateStatus?.Invoke("Schema `" + schemaName + "` has been dropped.");
             }
         }
 
@@ -236,13 +238,14 @@ END";
             }
         }
 
-        public void DropStoredProcedures()
+        public void DropStoredProcedures(Action<string> updateStatus)
         {
             using (var conn = new SqlConnection(connectionString))
             {
                 conn.Open();
                 var comm = new SqlCommand(string.Format(DropStoredProcsFormatString, schemaName), conn);
                 comm.ExecuteNonQuery();
+                updateStatus?.Invoke("Stored procedures for schema `" + schemaName + "` have been dropped.");
             }
         }
 

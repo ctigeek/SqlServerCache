@@ -3,7 +3,7 @@ using System.Management.Automation;
 namespace SqlServerCacheClient.Powershell
 {
     [Cmdlet("Add", "SqlCacheObject", ConfirmImpact = ConfirmImpact.Medium)]
-    public class AddSqlCacheObject : SqlCacheCmdletBase
+    public class AddSqlCacheObject : SqlCacheClientCmdletBase
     {
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
         public object Value { get; set; }

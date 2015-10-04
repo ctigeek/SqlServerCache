@@ -49,8 +49,11 @@
     <Compile Include="CacheClient.cs" />
     <Compile Include="ICacheClient.cs" />
     <Compile Include="Powershell\AddSqlCacheObject.cs" />
+    <Compile Include="Powershell\InstallSqlCache.cs" />
     <Compile Include="Powershell\SecureStringExtensions.cs" />
-    <Compile Include="Powershell\SqlCacheCmdletBase.cs" />
+    <Compile Include="Powershell\SqlCacheClientCmdletBase.cs" />
+    <Compile Include="Powershell\SqlCmdletBase.cs" />
+    <Compile Include="Powershell\UninstallSqlCache.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SchemaClient.cs" />
     <Compile Include="Powershell\GetSqlCacheObject.cs" />

@@ -3,7 +3,7 @@
 namespace SqlServerCacheClient.Powershell
 {
     [Cmdlet("Get", "SqlCacheObject", ConfirmImpact = ConfirmImpact.Low)]
-    public class GetSqlCacheObject : SqlCacheCmdletBase
+    public class GetSqlCacheObject : SqlCacheClientCmdletBase
     {
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
         public override string Key { get; set; }

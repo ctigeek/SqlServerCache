@@ -27,7 +27,7 @@ namespace SqlServerCacheClientTests
         {
             try
             {
-                schemaClient.DropStoredProcedures();
+                schemaClient.DropStoredProcedures(null);
             }
             catch
             {
@@ -41,7 +41,7 @@ namespace SqlServerCacheClientTests
             }
             try
             {
-                schemaClient.DropSchema();
+                schemaClient.DropSchema(null);
             }
             catch
             {
@@ -51,7 +51,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void CreateSchemaTest()
         {
-            schemaClient.CreateSchema();
+            schemaClient.CreateSchema(null);
             using (var conn = new SqlConnection(ConnectionString))
             {
                 conn.Open();
@@ -66,7 +66,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void CreateTablesTest()
         {
-            schemaClient.CreateSchema();
+            schemaClient.CreateSchema(null);
             schemaClient.CreateTables(null);
             string[] tables = new[] {"BinaryCache", "CounterCache", "Meta", "TextCache"};
             int index = 0;
@@ -89,7 +89,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void CreateStoredProceduresTest()
         {
-            schemaClient.CreateSchema();
+            schemaClient.CreateSchema(null);
             schemaClient.CreateTables(null);
             schemaClient.CreateStoredProcedures(null);
             var storedProcName = new[]

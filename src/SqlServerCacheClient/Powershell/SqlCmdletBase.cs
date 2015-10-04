@@ -5,54 +5,41 @@ using Microsoft.Win32;
 
 namespace SqlServerCacheClient.Powershell
 {
-    public class SqlCacheCmdletBase : PSCmdlet
+    public abstract class SqlCmdletBase : PSCmdlet
     {
-        public SqlCacheCmdletBase()
-        {
-            TimeToLive = TimeSpan.FromDays(999);
-        }
-
-        [Parameter(Mandatory = true)]
-        public virtual string Key { get; set; }
-
         [Parameter]
         [Credential]
-        public PSCredential SqlCredential { get; set; }
+        public virtual PSCredential SqlCredential { get; set; }
 
         [Parameter]
-        public string ConnectionString { get; set; }
+        public virtual string ConnectionString { get; set; }
 
         [Parameter]
-        public string DataSource { get; set; }
+        public virtual string DataSource { get; set; }
 
         [Parameter]
-        public string Database { get; set; }
+        public virtual string Database { get; set; }
 
         [Parameter]
-        public string SchemaName { get; set; }
-
-        [Parameter]
-        public string CacheKeyPrefix { get; set; }
-
-        [Parameter]
-        public TimeSpan TimeToLive { get; set; }
-
-        protected CacheClient cacheClient;
+        public virtual string SchemaName { get; set; }
 
         protected override void BeginProcessing()
         {
             if (SqlCredential == null)
                 SqlCredential = PSCredential.Empty;
-            if (CacheKeyPrefix == null)
-                CacheKeyPrefix = string.Empty;
+
             if (string.IsNullOrEmpty(Database))
+            {
+                WriteVerbose("No database specified. Using default of `Cache`.");
                 Database = "Cache";
+            }
             if (string.IsNullOrEmpty(SchemaName))
+            {
+                WriteVerbose("No schema name specified. Using default of `cache`.");
                 SchemaName = "cache";
+            }
             ConfigureServerProperty();
             ConfigureConnectionString();
-            cacheClient = new CacheClient(ConnectionString, CacheKeyPrefix, SchemaName);
-            cacheClient.DefaultTimeToLive = TimeToLive;
         }
 
         protected void ConfigureServerProperty()
@@ -72,7 +59,7 @@ namespace SqlServerCacheClient.Powershell
                 {
                     DataSource = "localhost\\" + localInstanceName;
                 }
-                WriteVerbose("Server set to " + DataSource);
+                WriteVerbose("No Data Source specified. Using local server & instance: `" + DataSource + "`.");
             }
         }
 
@@ -92,6 +79,7 @@ namespace SqlServerCacheClient.Powershell
             }
             else
             {
+                WriteVerbose("No database credentials supplied. Using Windows authentication.");
                 connString.Append("Integrated Security=SSPI;");
             }
             ConnectionString = connString.ToString();
