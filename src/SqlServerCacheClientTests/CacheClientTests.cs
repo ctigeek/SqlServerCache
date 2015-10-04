@@ -10,7 +10,7 @@ namespace SqlServerCacheClientTests
     [TestClass]
     public class CacheClientTests
     {
-        private string cacheName { get; set; }
+        private string schemaName { get; set; }
         public const string ConnectionString = "Data Source=LOCALHOST;Initial Catalog=Cache;Integrated Security=SSPI;";
         private CacheClient cacheClient;
         private TimeSpan timeToLive = TimeSpan.FromSeconds(5);
@@ -19,14 +19,15 @@ namespace SqlServerCacheClientTests
 
         public CacheClientTests()
         {
-            cacheName = "cache";
+            schemaName = "cache";
         }
 
         [TestInitialize]
         public void Setup()
         {
             randomKey = "key_" + random.Next().ToString();
-            cacheClient = new CacheClient(ConnectionString, string.Empty, cacheName);
+            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName);
+            cacheClient.DefaultTimeToLive = TimeSpan.FromDays(5);
             cacheClient.ClearCache();
         }
 
@@ -84,36 +85,32 @@ namespace SqlServerCacheClientTests
         public async Task IncrementCounterAsyncTest()
         {
             await cacheClient.SetCounterAsync(randomKey, 13, timeToLive);
-            await cacheClient.IncrementCounterAsync(randomKey, timeToLive);
-            var counter = await cacheClient.RetrieveCounterAsync(randomKey);
-            Assert.AreEqual(14, counter.Value);
+            var counter = await cacheClient.IncrementCounterAsync(randomKey);
+            Assert.AreEqual(14, counter);
         }
 
         [TestMethod()]
         public void IncrementCounterTest()
         {
             cacheClient.SetCounter(randomKey, 13, timeToLive);
-            cacheClient.IncrementCounter(randomKey, timeToLive);
-            var counter = cacheClient.RetrieveCounter(randomKey);
-            Assert.AreEqual(14, counter.Value);
+            var counter = cacheClient.IncrementCounter(randomKey);
+            Assert.AreEqual(14, counter);
         }
 
         [TestMethod()]
         public async Task DecrementCounterAsyncTest()
         {
             await cacheClient.SetCounterAsync(randomKey, 16, timeToLive);
-            await cacheClient.DecrementCounterAsync(randomKey, timeToLive);
-            var counter = await cacheClient.RetrieveCounterAsync(randomKey);
-            Assert.AreEqual(15, counter.Value);
+            var counter = await cacheClient.DecrementCounterAsync(randomKey);
+            Assert.AreEqual(15, counter);
         }
 
         [TestMethod]
         public void DecrementCounterTest()
         {
             cacheClient.SetCounter(randomKey, 19, timeToLive);
-            cacheClient.DecrementCounter(randomKey, timeToLive);
-            var counter = cacheClient.RetrieveCounter(randomKey);
-            Assert.AreEqual(18, counter.Value);
+            var counter = cacheClient.DecrementCounter(randomKey);
+            Assert.AreEqual(18, counter);
         }
 
         [TestMethod]
@@ -171,14 +168,6 @@ namespace SqlServerCacheClientTests
         }
 
         [TestMethod]
-        public async Task SetBinaryStringAsyncTest()
-        {
-            await cacheClient.SetBinaryAsync(randomKey, "some text", timeToLive);
-            var result = await cacheClient.RetrieveBinaryStringAsync(randomKey);
-            Assert.AreEqual("some text", result);
-        }
-
-        [TestMethod]
         public async Task SetBinaryBlobAsyncTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
@@ -215,41 +204,27 @@ namespace SqlServerCacheClientTests
         }
 
         [TestMethod]
-        public void SetBinaryStringTest()
-        {
-            cacheClient.SetBinary(randomKey, "some text", timeToLive);
-            var result = cacheClient.RetrieveBinaryString(randomKey);
-            Assert.AreEqual("some text", result);
-        }
-
-        [TestMethod]
         public async Task DeleteBinaryAsyncTest()
         {
-            await cacheClient.SetBinaryAsync(randomKey, "some text", timeToLive);
-            var result = await cacheClient.RetrieveBinaryStringAsync(randomKey);
-            Assert.AreEqual("some text", result);
+            var bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+            await cacheClient.SetBinaryAsync(randomKey, bytes, timeToLive);
+            var result = await cacheClient.RetrieveBinaryAsync(randomKey);
+            CollectionAssert.AreEquivalent(bytes, result);
             await cacheClient.DeleteBinaryAsync(randomKey);
-            result = await cacheClient.RetrieveBinaryStringAsync(randomKey);
+            result = await cacheClient.RetrieveBinaryAsync(randomKey);
             Assert.IsNull(result);
         }
 
         [TestMethod]
         public void DeleteBinaryTest()
         {
-            cacheClient.SetBinary(randomKey, "some text", timeToLive);
-            var result = cacheClient.RetrieveBinaryString(randomKey);
-            Assert.AreEqual("some text", result);
+            var bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+            cacheClient.SetBinary(randomKey, bytes, timeToLive);
+            var result = cacheClient.RetrieveBinary(randomKey);
+            CollectionAssert.AreEquivalent(bytes, result);
             cacheClient.DeleteBinary(randomKey);
-            result = cacheClient.RetrieveBinaryString(randomKey);
+            result = cacheClient.RetrieveBinary(randomKey);
             Assert.IsNull(result);
-        }
-
-        [TestMethod]
-        public async Task RetrieveBinaryStringAsyncTest()
-        {
-            await cacheClient.SetBinaryAsync(randomKey, "some text", timeToLive);
-            var result = await cacheClient.RetrieveBinaryStringAsync(randomKey);
-            Assert.AreEqual("some text", result);
         }
 
         [TestMethod]
@@ -270,15 +245,7 @@ namespace SqlServerCacheClientTests
             Assert.AreEqual(0, result.CompareTo(kst));
         }
 
-        [TestMethod()]
-        public void RetrieveBinaryStringTest()
-        {
-            cacheClient.SetBinary(randomKey, "some text", timeToLive);
-            var result = cacheClient.RetrieveBinaryString(randomKey);
-            Assert.AreEqual("some text", result);
-        }
-
-        [TestMethod()]
+        [TestMethod]
         public void RetrieveBinaryTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};

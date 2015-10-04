@@ -54,6 +54,11 @@ namespace SqlServerCacheClient
             await ExecuteNonQueryCommandAsync(comm);
         }
 
+        public void SetCounter(string key, long count)
+        {
+            SetCounter(key, count, DefaultTimeToLive);
+        }
+
         public void SetCounter(string key, long count, TimeSpan timeToLive)
         {
             var comm = BuildSetCounterCommand(key, count, timeToLive);
@@ -114,16 +119,16 @@ namespace SqlServerCacheClient
             return comm;
         }
 
-        public async Task<long> IncrementCounterAsync(string key, TimeSpan timeToLive)
+        public async Task<long> IncrementCounterAsync(string key)
         {
-            var comm = BuildIncrementCounterCommand(key, timeToLive);
+            var comm = BuildIncrementCounterCommand(key, DefaultTimeToLive);
             var result = await ExecuteScalarCommandAsync(comm);
             return (long) result;
         }
 
-        public long IncrementCounter(string key, TimeSpan timeToLive)
+        public long IncrementCounter(string key)
         {
-            var comm = BuildIncrementCounterCommand(key, timeToLive);
+            var comm = BuildIncrementCounterCommand(key, DefaultTimeToLive);
             var result = ExecuteScalarCommand(comm);
             return (long) result;
         }
@@ -137,16 +142,16 @@ namespace SqlServerCacheClient
             return comm;
         }
 
-        public async Task<long> DecrementCounterAsync(string key, TimeSpan timeToLive)
+        public async Task<long> DecrementCounterAsync(string key)
         {
-            var comm = BuildDecrementCounterCommand(key, timeToLive);
+            var comm = BuildDecrementCounterCommand(key, DefaultTimeToLive);
             var result = await ExecuteScalarCommandAsync(comm);
             return (long) result;
         }
 
-        public long DecrementCounter(string key, TimeSpan timeToLive)
+        public long DecrementCounter(string key)
         {
-            var comm = BuildDecrementCounterCommand(key, timeToLive);
+            var comm = BuildDecrementCounterCommand(key, DefaultTimeToLive);
             var result = ExecuteScalarCommand(comm);
             return (long) result;
         }
@@ -160,11 +165,21 @@ namespace SqlServerCacheClient
             return comm;
         }
 
+        public async Task SetTextAsync(string key, string value)
+        {
+            await SetTextAsync(key, value, DefaultTimeToLive);
+        }
+
         public async Task SetTextAsync(string key, string value, TimeSpan timeToLive)
         {
             if (value.Length > TextMaxLength) throw new ArgumentOutOfRangeException("value", value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
+        }
+
+        public void SetText(string key, string value)
+        {
+            SetText(key, value, DefaultTimeToLive);
         }
 
         public void SetText(string key, string value, TimeSpan timeToLive)
@@ -228,10 +243,20 @@ namespace SqlServerCacheClient
             return comm;
         }
 
+        public async Task SetBinaryAsync(string key, string value)
+        {
+            await SetBinaryAsync(key, value, DefaultTimeToLive);
+        }
+
         public async Task SetBinaryAsync(string key, string value, TimeSpan timeToLive)
         {
             var body = GetBytesFromString(value);
             await SetBinaryAsync(key, body, timeToLive);
+        }
+
+        public async Task SetBinaryAsync(string key, byte[] blob)
+        {
+            await SetBinaryAsync(key, blob, DefaultTimeToLive);
         }
 
         public async Task SetBinaryAsync(string key, byte[] blob, TimeSpan timeToLive)
@@ -244,6 +269,11 @@ namespace SqlServerCacheClient
             await ExecuteNonQueryCommandAsync(comm);
         }
 
+        public async Task SetBinaryAsync(string key, object value)
+        {
+            await SetBinaryAsync(key, value, DefaultTimeToLive);
+        }
+
         public async Task SetBinaryAsync(string key, object value, TimeSpan timeToLive)
         {
             using (var memStream = new MemoryStream())
@@ -254,10 +284,9 @@ namespace SqlServerCacheClient
             }
         }
 
-        public void SetBinary(string key, string value, TimeSpan timeToLive)
+        public void SetBinary(string key, object value)
         {
-            var body = GetBytesFromString(value);
-            SetBinary(key, body, timeToLive);
+            SetBinary(key, value, DefaultTimeToLive);
         }
 
         public void SetBinary(string key, object value, TimeSpan timeToLive)
@@ -268,6 +297,11 @@ namespace SqlServerCacheClient
                 memStream.Dispose();
                 SetBinary(key, memStream.ToArray(), timeToLive);
             }
+        }
+
+        public void SetBinary(string key, byte[] blob)
+        {
+            SetBinary(key, blob, DefaultTimeToLive);
         }
 
         public void SetBinary(string key, byte[] blob, TimeSpan timeToLive)
@@ -310,12 +344,6 @@ namespace SqlServerCacheClient
             return comm;
         }
 
-        public async Task<string> RetrieveBinaryStringAsync(string key)
-        {
-            var result = await RetrieveBinaryAsync(key);
-            return GetStringFromBytes(result);
-        }
-
         public async Task<byte[]> RetrieveBinaryAsync(string key)
         {
             var comm = BuildRetrieveCacheBinaryCommand(key);
@@ -334,12 +362,6 @@ namespace SqlServerCacheClient
                 var obj = new BinaryFormatter().Deserialize(memStream);
                 return (T)obj;
             }
-        }
-
-        public string RetrieveBinaryString(string key)
-        {
-            var result = RetrieveBinary(key);
-            return GetStringFromBytes(result);
         }
 
         public byte[] RetrieveBinary(string key)
