@@ -2,16 +2,16 @@
 
 namespace SqlServerCacheClient.Powershell
 {
-    [Cmdlet("Get", "SqlCacheObject", ConfirmImpact = ConfirmImpact.None)]
-    public class GetSqlCacheObject : SqlCacheClientCmdletBase
+    [Cmdlet("Get", "SqlCacheCounter", ConfirmImpact = ConfirmImpact.None)]
+    public class GetSqlCacheCounter : SqlCacheClientCmdletBase
     {
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
         public override string Key { get; set; }
 
         protected override void ProcessRecord()
         {
-            WriteVerbose("Retrieving object for key " + CacheKeyPrefix + Key);
-            var result = cacheClient.RetrieveObject<object>(Key);
+            WriteVerbose("Retrieving counter for key " + CacheKeyPrefix + Key);
+            var result = cacheClient.RetrieveCounter(Key);
             WriteObject(result);
         }
     }

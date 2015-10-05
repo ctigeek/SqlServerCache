@@ -48,9 +48,16 @@
   <ItemGroup>
     <Compile Include="CacheClient.cs" />
     <Compile Include="ICacheClient.cs" />
-    <Compile Include="Powershell\AddSqlCacheObject.cs" />
+    <Compile Include="Powershell\GetSqlCacheCounter.cs" />
+    <Compile Include="Powershell\GetSqlCacheText.cs" />
+    <Compile Include="Powershell\RemoveSqlCacheCounter.cs" />
+    <Compile Include="Powershell\RemoveSqlCacheObject.cs" />
+    <Compile Include="Powershell\RemoveSqlCacheText.cs" />
+    <Compile Include="Powershell\SetSqlCacheCounter.cs" />
+    <Compile Include="Powershell\SetSqlCacheObject.cs" />
     <Compile Include="Powershell\InstallSqlCache.cs" />
     <Compile Include="Powershell\SecureStringExtensions.cs" />
+    <Compile Include="Powershell\SetSqlCacheText.cs" />
     <Compile Include="Powershell\SqlCacheClientCmdletBase.cs" />
     <Compile Include="Powershell\SqlCmdletBase.cs" />
     <Compile Include="Powershell\UninstallSqlCache.cs" />

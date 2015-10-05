@@ -2,7 +2,7 @@ using System.Management.Automation;
 
 namespace SqlServerCacheClient.Powershell
 {
-    [Cmdlet("Uninstall", "SqlCache", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Medium)]
+    [Cmdlet("Uninstall", "SqlCache", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.High)]
     public class UninstallSqlCache : SqlCmdletBase
     {
         [Parameter(Mandatory = true, ValueFromPipeline = true)]
