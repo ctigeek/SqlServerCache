@@ -12,7 +12,7 @@ namespace SqlServerCacheClient.Powershell
         {
             WriteVerbose("Setting object with key " + CacheKeyPrefix + Key);
             var psObject = Value as PSObject;
-            cacheClient.SetBinary(Key, (psObject != null) ? psObject.ImmediateBaseObject : Value, TimeToLive);
+            cacheClient.SetBinary(Key, (psObject != null) ? psObject.ImmediateBaseObject : Value);
         }
     }
 }

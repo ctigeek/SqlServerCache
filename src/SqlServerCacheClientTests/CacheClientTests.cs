@@ -13,7 +13,6 @@ namespace SqlServerCacheClientTests
         private string schemaName { get; set; }
         public const string ConnectionString = "Data Source=LOCALHOST;Initial Catalog=Cache;Integrated Security=SSPI;";
         private CacheClient cacheClient;
-        private TimeSpan timeToLive = TimeSpan.FromSeconds(5);
         private Random random = new Random(DateTime.Now.Millisecond);
         private string randomKey;
 
@@ -26,15 +25,14 @@ namespace SqlServerCacheClientTests
         public void Setup()
         {
             randomKey = "key_" + random.Next().ToString();
-            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName);
-            cacheClient.DefaultTimeToLive = TimeSpan.FromDays(5);
+            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName, new MetaData(false, true, TimeSpan.FromDays(5), 123));
             cacheClient.ClearCache();
         }
 
         [TestMethod]
         public async Task SetCounterAsyncTest()
         {
-            await cacheClient.SetCounterAsync(randomKey, 8, timeToLive);
+            await cacheClient.SetCounterAsync(randomKey, 8);
             var counter = await cacheClient.RetrieveCounterAsync(randomKey);
             Assert.AreEqual(8, counter.Value);
         }
@@ -42,7 +40,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void SetCounterTest()
         {
-            cacheClient.SetCounter(randomKey, 7, timeToLive);
+            cacheClient.SetCounter(randomKey, 7);
             var counter = cacheClient.RetrieveCounter(randomKey);
             Assert.AreEqual(7, counter.Value);
         }
@@ -50,7 +48,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task DeleteCounterAsyncTest()
         {
-            await cacheClient.SetCounterAsync(randomKey, 6, timeToLive);
+            await cacheClient.SetCounterAsync(randomKey, 6);
             await cacheClient.DeleteCounterAsync(randomKey);
             var counter = await cacheClient.RetrieveCounterAsync(randomKey);
             Assert.IsNull(counter);
@@ -59,7 +57,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void DeleteCounterTest()
         {
-            cacheClient.SetCounter(randomKey, 5, timeToLive);
+            cacheClient.SetCounter(randomKey, 5);
             cacheClient.DeleteCounter(randomKey);
             var counter = cacheClient.RetrieveCounter(randomKey);
             Assert.IsNull(counter);
@@ -68,7 +66,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task RetrieveCounterAsyncTest()
         {
-            await cacheClient.SetCounterAsync(randomKey, 11, timeToLive);
+            await cacheClient.SetCounterAsync(randomKey, 11);
             var counter = await cacheClient.RetrieveCounterAsync(randomKey);
             Assert.AreEqual(11, counter.Value);
         }
@@ -76,7 +74,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void RetrieveCounterTest()
         {
-            cacheClient.SetCounter(randomKey, 12, timeToLive);
+            cacheClient.SetCounter(randomKey, 12);
             var counter = cacheClient.RetrieveCounter(randomKey);
             Assert.AreEqual(12, counter.Value);
         }
@@ -84,7 +82,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task IncrementCounterAsyncTest()
         {
-            await cacheClient.SetCounterAsync(randomKey, 13, timeToLive);
+            await cacheClient.SetCounterAsync(randomKey, 13);
             var counter = await cacheClient.IncrementCounterAsync(randomKey);
             Assert.AreEqual(14, counter);
         }
@@ -92,7 +90,7 @@ namespace SqlServerCacheClientTests
         [TestMethod()]
         public void IncrementCounterTest()
         {
-            cacheClient.SetCounter(randomKey, 13, timeToLive);
+            cacheClient.SetCounter(randomKey, 13);
             var counter = cacheClient.IncrementCounter(randomKey);
             Assert.AreEqual(14, counter);
         }
@@ -100,7 +98,7 @@ namespace SqlServerCacheClientTests
         [TestMethod()]
         public async Task DecrementCounterAsyncTest()
         {
-            await cacheClient.SetCounterAsync(randomKey, 16, timeToLive);
+            await cacheClient.SetCounterAsync(randomKey, 16);
             var counter = await cacheClient.DecrementCounterAsync(randomKey);
             Assert.AreEqual(15, counter);
         }
@@ -108,7 +106,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void DecrementCounterTest()
         {
-            cacheClient.SetCounter(randomKey, 19, timeToLive);
+            cacheClient.SetCounter(randomKey, 19);
             var counter = cacheClient.DecrementCounter(randomKey);
             Assert.AreEqual(18, counter);
         }
@@ -116,7 +114,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task SetTextAsyncTest()
         {
-            await cacheClient.SetTextAsync(randomKey, "some text", timeToLive);
+            await cacheClient.SetTextAsync(randomKey, "some text");
             var result = await cacheClient.RetrieveTextAsync(randomKey);
             Assert.AreEqual("some text", result);
         }
@@ -124,7 +122,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void SetTextTest()
         {
-            cacheClient.SetText(randomKey, "some text", timeToLive);
+            cacheClient.SetText(randomKey, "some text");
             var result = cacheClient.RetrieveText(randomKey);
             Assert.AreEqual("some text", result);
         }
@@ -132,7 +130,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task DeleteTextAsyncTest()
         {
-            await cacheClient.SetTextAsync(randomKey, "some text", timeToLive);
+            await cacheClient.SetTextAsync(randomKey, "some text");
             var result = await cacheClient.RetrieveTextAsync(randomKey);
             Assert.AreEqual("some text", result);
             await cacheClient.DeleteTextAsync(randomKey);
@@ -143,7 +141,7 @@ namespace SqlServerCacheClientTests
         [TestMethod()]
         public void DeleteTextTest()
         {
-            cacheClient.SetText(randomKey, "some text", timeToLive);
+            cacheClient.SetText(randomKey, "some text");
             var result = cacheClient.RetrieveText(randomKey);
             Assert.AreEqual("some text", result);
             cacheClient.DeleteText(randomKey);
@@ -154,7 +152,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public async Task RetrieveTextAsyncTest()
         {
-            await cacheClient.SetTextAsync(randomKey, "some text", timeToLive);
+            await cacheClient.SetTextAsync(randomKey, "some text");
             var result = await cacheClient.RetrieveTextAsync(randomKey);
             Assert.AreEqual("some text", result);
         }
@@ -162,7 +160,7 @@ namespace SqlServerCacheClientTests
         [TestMethod]
         public void RetrieveTextTest()
         {
-            cacheClient.SetText(randomKey, "some text", timeToLive);
+            cacheClient.SetText(randomKey, "some text");
             var result = cacheClient.RetrieveText(randomKey);
             Assert.AreEqual("some text", result);
         }
@@ -171,7 +169,7 @@ namespace SqlServerCacheClientTests
         public async Task SetBinaryBlobAsyncTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
-            await cacheClient.SetBinaryAsync(randomKey, bytes, timeToLive);
+            await cacheClient.SetBinaryAsync(randomKey, bytes);
             var result = await cacheClient.RetrieveBinaryAsync(randomKey);
             CollectionAssert.AreEqual(bytes, result);
         }
@@ -180,7 +178,7 @@ namespace SqlServerCacheClientTests
         public async Task SetBinaryObjectAsyncTest()
         {
             var kst = KitchenSinkTest.BuildKitchenSinkTest();
-            await cacheClient.SetBinaryAsync(randomKey, kst, timeToLive);
+            await cacheClient.SetBinaryAsync(randomKey, kst);
             var result = await cacheClient.RetrieveObjectAsync<KitchenSinkTest>(randomKey);
             Assert.AreEqual(0, result.CompareTo(kst));
         }
@@ -189,7 +187,7 @@ namespace SqlServerCacheClientTests
         public void SetBinaryObjectTest()
         {
             var kst = KitchenSinkTest.BuildKitchenSinkTest();
-            cacheClient.SetBinary(randomKey, kst, timeToLive);
+            cacheClient.SetBinary(randomKey, kst);
             var result = cacheClient.RetrieveObject<KitchenSinkTest>(randomKey);
             Assert.AreEqual(0, result.CompareTo(kst));
         }
@@ -198,7 +196,7 @@ namespace SqlServerCacheClientTests
         public void SetBinaryBlobTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
-            cacheClient.SetBinary(randomKey, bytes, timeToLive);
+            cacheClient.SetBinary(randomKey, bytes);
             var result = cacheClient.RetrieveBinary(randomKey);
             CollectionAssert.AreEqual(bytes, result);
         }
@@ -207,7 +205,7 @@ namespace SqlServerCacheClientTests
         public async Task DeleteBinaryAsyncTest()
         {
             var bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
-            await cacheClient.SetBinaryAsync(randomKey, bytes, timeToLive);
+            await cacheClient.SetBinaryAsync(randomKey, bytes);
             var result = await cacheClient.RetrieveBinaryAsync(randomKey);
             CollectionAssert.AreEquivalent(bytes, result);
             await cacheClient.DeleteBinaryAsync(randomKey);
@@ -219,7 +217,7 @@ namespace SqlServerCacheClientTests
         public void DeleteBinaryTest()
         {
             var bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
-            cacheClient.SetBinary(randomKey, bytes, timeToLive);
+            cacheClient.SetBinary(randomKey, bytes);
             var result = cacheClient.RetrieveBinary(randomKey);
             CollectionAssert.AreEquivalent(bytes, result);
             cacheClient.DeleteBinary(randomKey);
@@ -231,7 +229,7 @@ namespace SqlServerCacheClientTests
         public async Task RetrieveBinaryAsyncTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
-            await cacheClient.SetBinaryAsync(randomKey, bytes, timeToLive);
+            await cacheClient.SetBinaryAsync(randomKey, bytes);
             var result = await cacheClient.RetrieveBinaryAsync(randomKey);
             CollectionAssert.AreEqual(bytes, result);
         }
@@ -240,7 +238,7 @@ namespace SqlServerCacheClientTests
         public async Task RetrieveObjectAsyncTest()
         {
             var kst = KitchenSinkTest.BuildKitchenSinkTest();
-            await cacheClient.SetBinaryAsync(randomKey, kst, timeToLive);
+            await cacheClient.SetBinaryAsync(randomKey, kst);
             var result = (await cacheClient.RetrieveObjectAsync<KitchenSinkTest>(randomKey));
             Assert.AreEqual(0, result.CompareTo(kst));
         }
@@ -249,7 +247,7 @@ namespace SqlServerCacheClientTests
         public void RetrieveBinaryTest()
         {
             var bytes = new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
-            cacheClient.SetBinary(randomKey, bytes, timeToLive);
+            cacheClient.SetBinary(randomKey, bytes);
             var result = cacheClient.RetrieveBinary(randomKey);
             CollectionAssert.AreEqual(bytes, result);
         }
@@ -258,7 +256,7 @@ namespace SqlServerCacheClientTests
         public void RetrieveObjectTest()
         {
             var kst = KitchenSinkTest.BuildKitchenSinkTest();
-            cacheClient.SetBinary(randomKey, kst, timeToLive);
+            cacheClient.SetBinary(randomKey, kst);
             var result = cacheClient.RetrieveObject<KitchenSinkTest>(randomKey);
             Assert.AreEqual(0, result.CompareTo(kst));
         }

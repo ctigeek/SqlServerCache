@@ -41,7 +41,7 @@ namespace SqlServerCacheClient.Powershell
             }
             else
             {
-                cacheClient.SetCounter(Key, Count.Value, TimeToLive);
+                cacheClient.SetCounter(Key, Count.Value);
             }
         }
     }

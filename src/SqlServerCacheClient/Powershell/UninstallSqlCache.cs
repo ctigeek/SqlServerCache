@@ -1,3 +1,4 @@
+using System;
 using System.Management.Automation;
 
 namespace SqlServerCacheClient.Powershell
@@ -21,9 +22,31 @@ namespace SqlServerCacheClient.Powershell
         {
             if (ShouldProcess(DataSource + "." + Database, "Drop schema `" + SchemaName + "`"))
             {
-                schemaClient.DropStoredProcedures(WriteVerbose);
-                schemaClient.DropTables(WriteVerbose);
-                schemaClient.DropSchema(WriteVerbose);
+                try
+                {
+                    schemaClient.DropStoredProcedures(WriteVerbose);
+                }
+                catch (Exception ex)
+                {
+                    WriteError(new ErrorRecord(ex, "Stored Procedures", ErrorCategory.InvalidOperation, null));
+                }
+                try
+                {
+                    schemaClient.DropTables(WriteVerbose);
+                }
+                catch (Exception ex)
+                {
+                    WriteError(new ErrorRecord(ex, "Tables", ErrorCategory.InvalidOperation, null));
+                }
+                try
+                {
+                    schemaClient.DropSchema(WriteVerbose);
+                }
+                catch (Exception ex)
+                {
+                    WriteError(new ErrorRecord(ex, "Schema", ErrorCategory.InvalidOperation, null));
+                }
+
                 WriteVerbose("The cache using schema name " + SchemaName + " has been dropped from the database.");
             }
         }

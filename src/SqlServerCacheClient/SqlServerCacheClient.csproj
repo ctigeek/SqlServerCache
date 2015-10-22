@@ -31,6 +31,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="log4net, Version=1.2.11.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.2.0.0\lib\net40-full\log4net.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NLog, Version=4.0.0.0, Culture=neutral, PublicKeyToken=5120e14c03d0593c, processorArchitecture=MSIL">
+      <HintPath>..\packages\NLog.4.1.2\lib\net45\NLog.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
@@ -48,6 +56,14 @@
   <ItemGroup>
     <Compile Include="CacheClient.cs" />
     <Compile Include="ICacheClient.cs" />
+    <Compile Include="Logging\ConsoleLogger.cs" />
+    <Compile Include="Logging\ILogger.cs" />
+    <Compile Include="Logging\Log4NetWrapper.cs" />
+    <Compile Include="Logging\LogManager.cs" />
+    <Compile Include="Logging\NlogWrapper.cs" />
+    <Compile Include="Logging\NullLogger.cs" />
+    <Compile Include="MetaData.cs" />
+    <Compile Include="MetaDataManager.cs" />
     <Compile Include="Powershell\GetSqlCacheCounter.cs" />
     <Compile Include="Powershell\GetSqlCacheText.cs" />
     <Compile Include="Powershell\RemoveSqlCacheCounter.cs" />
@@ -66,6 +82,7 @@
     <Compile Include="Powershell\GetSqlCacheObject.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="Powershell\debug.ps1">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

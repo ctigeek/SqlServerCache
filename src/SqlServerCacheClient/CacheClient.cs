@@ -10,58 +10,69 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using SqlServerCacheClient.Logging;
+
 
 namespace SqlServerCacheClient
 {
     public class CacheClient : ICacheClient
     {
+        private static ILogger logger = LogManager.GetLogger(typeof (CacheClient));
+
         private const int CommandTimeout = 5;
         public const string DefaultSchemaName = "cache";
         public const int BlobMaxLength = 7980;
         public const int TextMaxLength = 3950;
         public readonly string CacheKeyPrefix;
         private readonly string connectionString;
+        private readonly MetaData metaData;
         private readonly SHA256Managed hasher;
         public bool CompressBinaryIfNecessary { get; set; }
         public bool DontThrowOnValueOverflow { get; set; }
-        public string SchemaName { get; set; }
-        public TimeSpan DefaultTimeToLive { get; set; }
+        public string SchemaName { get; }
 
-        public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName)
+        public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName, MetaData metaData)
         {
             hasher = new SHA256Managed();
             SchemaName = schemaName;
             DontThrowOnValueOverflow = true;
             CacheKeyPrefix = cacheKeyPrefix;
             this.connectionString = connectionString;
+            this.metaData = metaData;
+            logger.DebugFormat("CacheClient instantiated: SchemaName={0} CacheKeyPrefix={1}  Metadata: {2} ", schemaName, cacheKeyPrefix, metaData);
         }
 
-        public CacheClient(string connectionStringName, string cacheKeyPrefix) : this(string.Empty, cacheKeyPrefix, DefaultSchemaName)
+        public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName)
+            : this(connectionString, cacheKeyPrefix, schemaName, MetaDataManager.GetMetaData(connectionString, schemaName))
         {
-            if (ConfigurationManager.ConnectionStrings[connectionStringName] == null)
-                throw new ArgumentNullException("There is no connection string with the name of " + connectionStringName);
-            connectionString = ConfigurationManager.ConnectionStrings[connectionStringName].ConnectionString;
+        }
+
+        public CacheClient(string connectionStringName, string cacheKeyPrefix) 
+            : this(ConfigurationManager.ConnectionStrings[connectionStringName].ConnectionString, cacheKeyPrefix, DefaultSchemaName)
+        {
         }
 
         public async Task SetCounterAsync(string key, long count)
         {
-            await SetCounterAsync(key, count, DefaultTimeToLive);
+            await SetCounterAsync(key, count, metaData.DefaultTimeToLive);
         }
 
         public async Task SetCounterAsync(string key, long count, TimeSpan timeToLive)
         {
             var comm = BuildSetCounterCommand(key, count, timeToLive);
+            logger.DebugFormat("Cache {0}: Set Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, count);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void SetCounter(string key, long count)
         {
-            SetCounter(key, count, DefaultTimeToLive);
+            SetCounter(key, count, metaData.DefaultTimeToLive);
         }
 
         public void SetCounter(string key, long count, TimeSpan timeToLive)
         {
             var comm = BuildSetCounterCommand(key, count, timeToLive);
+            logger.DebugFormat("Cache {0}: Set Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, count);
             ExecuteNonQueryCommand(comm);
         }
 
@@ -78,12 +89,14 @@ namespace SqlServerCacheClient
         public async Task DeleteCounterAsync(string key)
         {
             var comm = BuildDeleteCounterCommand(key);
+            logger.DebugFormat("Cache {0}: Delete Counter {1}{2}", SchemaName, CacheKeyPrefix, key);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteCounter(string key)
         {
             var comm = BuildDeleteCounterCommand(key);
+            logger.DebugFormat("Cache {0}: Delete Counter {1}{2}", SchemaName, CacheKeyPrefix, key);
             ExecuteNonQueryCommand(comm);
         }
 
@@ -99,6 +112,7 @@ namespace SqlServerCacheClient
         {
             var comm = BuildRetrieveCounterCommand(key);
             var result = await ExecuteScalarCommandAsync(comm);
+            logger.DebugFormat("Cache {0}: Retrieve Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             if (result == null || result == DBNull.Value) return null;
             return (long?) result;
         }
@@ -107,6 +121,7 @@ namespace SqlServerCacheClient
         {
             var comm = BuildRetrieveCounterCommand(key);
             var result = ExecuteScalarCommand(comm);
+            logger.DebugFormat("Cache {0}: Retrieve Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             if (result == null || result == DBNull.Value) return null;
             return (long) result;
         }
@@ -121,15 +136,17 @@ namespace SqlServerCacheClient
 
         public async Task<long> IncrementCounterAsync(string key)
         {
-            var comm = BuildIncrementCounterCommand(key, DefaultTimeToLive);
+            var comm = BuildIncrementCounterCommand(key, metaData.DefaultTimeToLive);
             var result = await ExecuteScalarCommandAsync(comm);
+            logger.DebugFormat("Cache {0}: Increment Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             return (long) result;
         }
 
         public long IncrementCounter(string key)
         {
-            var comm = BuildIncrementCounterCommand(key, DefaultTimeToLive);
+            var comm = BuildIncrementCounterCommand(key, metaData.DefaultTimeToLive);
             var result = ExecuteScalarCommand(comm);
+            logger.DebugFormat("Cache {0}: Increment Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             return (long) result;
         }
 
@@ -144,15 +161,17 @@ namespace SqlServerCacheClient
 
         public async Task<long> DecrementCounterAsync(string key)
         {
-            var comm = BuildDecrementCounterCommand(key, DefaultTimeToLive);
+            var comm = BuildDecrementCounterCommand(key, metaData.DefaultTimeToLive);
             var result = await ExecuteScalarCommandAsync(comm);
+            logger.DebugFormat("Cache {0}: Decrement Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             return (long) result;
         }
 
         public long DecrementCounter(string key)
         {
-            var comm = BuildDecrementCounterCommand(key, DefaultTimeToLive);
+            var comm = BuildDecrementCounterCommand(key, metaData.DefaultTimeToLive);
             var result = ExecuteScalarCommand(comm);
+            logger.DebugFormat("Cache {0}: Decrement Counter {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             return (long) result;
         }
 
@@ -167,24 +186,34 @@ namespace SqlServerCacheClient
 
         public async Task SetTextAsync(string key, string value)
         {
-            await SetTextAsync(key, value, DefaultTimeToLive);
+            await SetTextAsync(key, value, metaData.DefaultTimeToLive);
         }
 
         public async Task SetTextAsync(string key, string value, TimeSpan timeToLive)
         {
-            if (value.Length > TextMaxLength) throw new ArgumentOutOfRangeException("value", value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+            logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
+            if (value.Length > TextMaxLength)
+            {
+                if (DontThrowOnValueOverflow) return;
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+            }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void SetText(string key, string value)
         {
-            SetText(key, value, DefaultTimeToLive);
+            SetText(key, value, metaData.DefaultTimeToLive);
         }
 
         public void SetText(string key, string value, TimeSpan timeToLive)
         {
-            if (value.Length > TextMaxLength) throw new ArgumentOutOfRangeException("value", value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+            logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
+            if (value.Length > TextMaxLength)
+            {
+                if (DontThrowOnValueOverflow) return;
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+            }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             ExecuteNonQueryCommand(comm);
         }
@@ -201,12 +230,14 @@ namespace SqlServerCacheClient
 
         public async Task DeleteTextAsync(string key)
         {
+            logger.DebugFormat("Cache {0}: Delete Text {1}{2}", SchemaName, CacheKeyPrefix, key);
             var comm = BuildDeleteCacheTextCommand(key);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteText(string key)
         {
+            logger.DebugFormat("Cache {0}: Delete Text {1}{2}", SchemaName, CacheKeyPrefix, key);
             var comm = BuildDeleteCacheTextCommand(key);
             ExecuteNonQueryCommand(comm);
         }
@@ -223,6 +254,7 @@ namespace SqlServerCacheClient
         {
             var comm = BuildRetrieveCacheTextCommand(key);
             var result = await ExecuteScalarCommandAsync(comm);
+            logger.DebugFormat("Cache {0}: Retrieve Text {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             if (result == null || result == DBNull.Value) return null;
             return (string) result;
         }
@@ -231,6 +263,7 @@ namespace SqlServerCacheClient
         {
             var comm = BuildRetrieveCacheTextCommand(key);
             var result = ExecuteScalarCommand(comm);
+            logger.DebugFormat("Cache {0}: Retrieve Text {1}{2} = {3}", SchemaName, CacheKeyPrefix, key, result);
             if (result == null || result == DBNull.Value) return null;
             return (string) result;
         }
@@ -243,35 +276,28 @@ namespace SqlServerCacheClient
             return comm;
         }
 
-        public async Task SetBinaryAsync(string key, string value)
-        {
-            await SetBinaryAsync(key, value, DefaultTimeToLive);
-        }
-
-        public async Task SetBinaryAsync(string key, string value, TimeSpan timeToLive)
-        {
-            var body = GetBytesFromString(value);
-            await SetBinaryAsync(key, body, timeToLive);
-        }
-
         public async Task SetBinaryAsync(string key, byte[] blob)
         {
-            await SetBinaryAsync(key, blob, DefaultTimeToLive);
+            await SetBinaryAsync(key, blob, metaData.DefaultTimeToLive);
         }
 
         public async Task SetBinaryAsync(string key, byte[] blob, TimeSpan timeToLive)
         {
+            logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
             if (compressedBlob.Length > BlobMaxLength)
-                throw new ArgumentOutOfRangeException("blob", compressedBlob.Length,
+            {
+                if (DontThrowOnValueOverflow) return;
+                throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
                     "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
+            }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public async Task SetBinaryAsync(string key, object value)
         {
-            await SetBinaryAsync(key, value, DefaultTimeToLive);
+            await SetBinaryAsync(key, value, metaData.DefaultTimeToLive);
         }
 
         public async Task SetBinaryAsync(string key, object value, TimeSpan timeToLive)
@@ -286,7 +312,7 @@ namespace SqlServerCacheClient
 
         public void SetBinary(string key, object value)
         {
-            SetBinary(key, value, DefaultTimeToLive);
+            SetBinary(key, value, metaData.DefaultTimeToLive);
         }
 
         public void SetBinary(string key, object value, TimeSpan timeToLive)
@@ -301,15 +327,19 @@ namespace SqlServerCacheClient
 
         public void SetBinary(string key, byte[] blob)
         {
-            SetBinary(key, blob, DefaultTimeToLive);
+            SetBinary(key, blob, metaData.DefaultTimeToLive);
         }
 
         public void SetBinary(string key, byte[] blob, TimeSpan timeToLive)
         {
+            logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
             if (compressedBlob.Length > BlobMaxLength)
-                throw new ArgumentOutOfRangeException("blob", compressedBlob.Length,
+            {
+                if (DontThrowOnValueOverflow) return;
+                throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
                     "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
+            }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             ExecuteNonQueryCommand(comm);
         }
@@ -326,12 +356,14 @@ namespace SqlServerCacheClient
 
         public async Task DeleteBinaryAsync(string key)
         {
+            logger.DebugFormat("Cache {0}: Delete Binary {1}{2} ", SchemaName, CacheKeyPrefix, key);
             var comm = BuildDeleteCacheBinaryCommand(key);
             await ExecuteNonQueryCommandAsync(comm);
         }
 
         public void DeleteBinary(string key)
         {
+            logger.DebugFormat("Cache {0}: Delete Binary {1}{2} ", SchemaName, CacheKeyPrefix, key);
             var comm = BuildDeleteCacheBinaryCommand(key);
             ExecuteNonQueryCommand(comm);
         }
@@ -346,6 +378,7 @@ namespace SqlServerCacheClient
 
         public async Task<byte[]> RetrieveBinaryAsync(string key)
         {
+            logger.DebugFormat("Cache {0}: Retrieve Binary {1}{2} ", SchemaName, CacheKeyPrefix, key);
             var comm = BuildRetrieveCacheBinaryCommand(key);
             var result = await ExecuteScalarCommandAsync(comm);
             if (result == null || result == DBNull.Value) return null;
@@ -366,6 +399,7 @@ namespace SqlServerCacheClient
 
         public byte[] RetrieveBinary(string key)
         {
+            logger.DebugFormat("Cache {0}: Retrieve Binary {1}{2} ", SchemaName, CacheKeyPrefix, key);
             var comm = BuildRetrieveCacheBinaryCommand(key);
             var result = ExecuteScalarCommand(comm);
             if (result == null || result == DBNull.Value) return null;
@@ -394,12 +428,14 @@ namespace SqlServerCacheClient
 
         public void ClearCache()
         {
+            logger.DebugFormat("Cache {0}: Clear Cache.", SchemaName);
             var comm = BuildClearCacheCommand();
             ExecuteNonQueryCommand(comm);
         }
 
         public async Task ClearCacheAsync()
         {
+            logger.DebugFormat("Cache {0}: Clear Cache.", SchemaName);
             var comm = BuildClearCacheCommand();
             await ExecuteNonQueryCommandAsync(comm);
         }
@@ -527,17 +563,6 @@ namespace SqlServerCacheClient
                 }
             }
             return outputMemStream.ToArray();
-        }
-
-        private byte[] GetBytesFromString(string value)
-        {
-            return Encoding.UTF8.GetBytes(value);
-        }
-
-        private string GetStringFromBytes(byte[] bytes)
-        {
-            if (bytes == null) return null;
-            return Encoding.UTF8.GetString(bytes);
         }
 
         private Guid GetUidKey(string key)

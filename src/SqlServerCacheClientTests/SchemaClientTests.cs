@@ -12,14 +12,12 @@ namespace SqlServerCacheClientTests
         private Random random = new Random(DateTime.Now.Millisecond);
         public const string ConnectionString = "Data Source=LOCALHOST;Initial Catalog=Cache;Integrated Security=SSPI;";
         private string schemaName;
-        private CacheClient cacheClient;
 
         [TestInitialize]
         public void Setup()
         {
             schemaName = "cache" + random.Next().ToString();
             schemaClient = new SchemaClient(ConnectionString, schemaName);
-            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName);
         }
 
         [TestCleanup]
@@ -67,7 +65,7 @@ namespace SqlServerCacheClientTests
         public void CreateTablesTest()
         {
             schemaClient.CreateSchema(null);
-            schemaClient.CreateTables(null);
+            schemaClient.CreateTables(null, TimeSpan.FromDays(1));
             string[] tables = new[] {"BinaryCache", "CounterCache", "Meta", "TextCache"};
             int index = 0;
             using (var conn = new SqlConnection(ConnectionString))
@@ -90,7 +88,7 @@ namespace SqlServerCacheClientTests
         public void CreateStoredProceduresTest()
         {
             schemaClient.CreateSchema(null);
-            schemaClient.CreateTables(null);
+            schemaClient.CreateTables(null, TimeSpan.FromDays(1));
             schemaClient.CreateStoredProcedures(null);
             var storedProcName = new[]
             {"ClearCache","DecrementCounter","DeleteCacheBinary","DeleteCacheText",
