@@ -30,7 +30,7 @@ namespace SqlServerCacheClient.Powershell
                 schemaClient.CreateSchema(WriteVerbose);
                 schemaClient.CreateTables(WriteVerbose, DefaultTimeToLive.Value);
                 schemaClient.CreateStoredProcedures(WriteVerbose);
-                WriteVerbose("The cache using schema name " + SchemaName + " has been created.");
+                WriteVerbose("The cache using schema name " + SchemaName + " has been created. You should create a scheduled task to run DeleteExpiredCache every few minutes.");
             }
         }
     }

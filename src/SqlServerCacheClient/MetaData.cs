@@ -13,16 +13,19 @@ namespace SqlServerCacheClient
             ConnectionString = connectionString;
         }
 
-        public MetaData(bool isDebugSchema, bool cacheIsEnabled, TimeSpan defaultTimeToLive, long maxRowCountForAllTables)
+        public MetaData(bool isDebugSchema, bool cacheIsEnabled, TimeSpan defaultTimeToLive, 
+            long maxRowCountCounterCache, long maxRowCountTextCache, long maxRowCountBinaryCache)
         {
             SchemaName = CacheClient.DefaultSchemaName;
             ConnectionString = string.Empty;
             IsDebugSchema = isDebugSchema;
             CacheIsEnabled = cacheIsEnabled;
             DefaultTimeToLive = defaultTimeToLive;
-            MaxRowCountForAllTables = maxRowCountForAllTables;
-            MaxSizeForBinaryCache = SchemaClient.BlobMaxLength;
-            MaxSizeForTextCache = SchemaClient.TextMaxLength;
+            MaxRowCountCounterCache = maxRowCountCounterCache;
+            MaxRowCountBinaryCache = maxRowCountBinaryCache;
+            MaxRowCountTextCache = maxRowCountTextCache;
+            MaxPayloadSizeForBinaryCache = SchemaClient.BlobMaxLength;
+            MaxPayloadSizeForTextCache = SchemaClient.TextMaxLength;
         }
 
         public bool IsDebugSchema { get; internal set; }
@@ -31,17 +34,21 @@ namespace SqlServerCacheClient
 
         public TimeSpan DefaultTimeToLive { get; internal set; }
 
-        public long MaxRowCountForAllTables { get; internal set; }
+        public long MaxRowCountCounterCache { get; internal set; }
 
-        public long MaxSizeForTextCache { get; internal set; }
+        public long MaxRowCountBinaryCache { get; internal set; }
 
-        public long MaxSizeForBinaryCache { get; internal set; }
+        public long MaxRowCountTextCache { get; internal set; }
+
+        public long MaxPayloadSizeForTextCache { get; internal set; }
+
+        public long MaxPayloadSizeForBinaryCache { get; internal set; }
 
         public DateTime LastRunDeleteExpiredCache { get; internal set; }
 
         public override string ToString()
         {
-            return $"IsDebugSchema={IsDebugSchema}, CacheIsEnabled={CacheIsEnabled}, DefaultTimeToLive={DefaultTimeToLive}, MaxRowCountForAllTables={MaxRowCountForAllTables}, MaxSizeForBinaryCache={MaxSizeForBinaryCache}, MaxSizeForTextCache={MaxSizeForTextCache}";
+            return $"IsDebugSchema={IsDebugSchema}, CacheIsEnabled={CacheIsEnabled}, DefaultTimeToLive={DefaultTimeToLive}, MaxRowCountCounterCache={MaxRowCountCounterCache}, MaxRowCountBinaryCache={MaxRowCountBinaryCache}, MaxRowCountTextCache={MaxRowCountTextCache}, MaxPayloadSizeForBinaryCache={MaxPayloadSizeForBinaryCache}, MaxPayloadSizeForTextCache={MaxPayloadSizeForTextCache}";
         }
     }
 }

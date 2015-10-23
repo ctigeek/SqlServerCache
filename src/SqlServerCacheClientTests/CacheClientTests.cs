@@ -25,7 +25,7 @@ namespace SqlServerCacheClientTests
         public void Setup()
         {
             randomKey = "key_" + random.Next().ToString();
-            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName, new MetaData(false, true, TimeSpan.FromDays(5), 123));
+            cacheClient = new CacheClient(ConnectionString, string.Empty, schemaName, new MetaData(false, true, TimeSpan.FromDays(5), 123,123,123));
             cacheClient.ClearCache();
         }
 

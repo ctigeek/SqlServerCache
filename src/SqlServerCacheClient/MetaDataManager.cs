@@ -35,6 +35,18 @@ namespace SqlServerCacheClient
             }
         }
 
+        public static void RemovePollingForCache(MetaData metaData)
+        {
+            lock (lockObject)
+            {
+                var metaData2 = metaDataList.FirstOrDefault(mdl => mdl.ConnectionString == metaData.ConnectionString && mdl.SchemaName == metaData.SchemaName);
+                if (metaData2 != null)
+                {
+                    metaDataList.Remove(metaData2);
+                }
+            }
+        }
+
         private static void CheckCacheData(object o)
         {
             lock (lockObject)
@@ -70,9 +82,11 @@ namespace SqlServerCacheClient
                             metaData.CacheIsEnabled = (bool) reader["CacheIsEnabled"];
                             metaData.IsDebugSchema = (bool) reader["IsDebugSchema"];
                             metaData.LastRunDeleteExpiredCache = (DateTime) reader["LastRunDeleteExpiredCache"];
-                            metaData.MaxRowCountForAllTables = (long) reader["MaxRowCountForAllTables"];
-                            metaData.MaxSizeForTextCache = (long) reader["MaxSizeForTextCache"];
-                            metaData.MaxSizeForBinaryCache = (long)reader["MaxSizeForBinaryCache"];
+                            metaData.MaxRowCountCounterCache = (long) reader["MaxRowCountCounterCache"];
+                            metaData.MaxRowCountBinaryCache = (long)reader["MaxRowCountBinaryCache"];
+                            metaData.MaxRowCountTextCache = (long)reader["MaxRowCountTextCache"];
+                            metaData.MaxPayloadSizeForTextCache = (long) reader["MaxPayloadSizeForTextCache"];
+                            metaData.MaxPayloadSizeForBinaryCache = (long)reader["MaxPayloadSizeForBinaryCache"];
                         }
                         else
                         {

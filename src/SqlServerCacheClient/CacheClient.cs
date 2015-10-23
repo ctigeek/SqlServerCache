@@ -11,7 +11,6 @@ using System.Text;
 using System.Threading.Tasks;
 using SqlServerCacheClient.Logging;
 
-
 namespace SqlServerCacheClient
 {
     public class CacheClient : ICacheClient
@@ -190,10 +189,10 @@ namespace SqlServerCacheClient
         public async Task SetTextAsync(string key, string value, TimeSpan timeToLive)
         {
             logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
-            if (value.Length > metaData.MaxSizeForTextCache)
+            if (value.Length > metaData.MaxPayloadSizeForTextCache)
             {
                 if (DontThrowOnValueOverflow) return;
-                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxSizeForTextCache);
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxPayloadSizeForTextCache);
             }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
@@ -207,10 +206,10 @@ namespace SqlServerCacheClient
         public void SetText(string key, string value, TimeSpan timeToLive)
         {
             logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
-            if (value.Length > metaData.MaxSizeForTextCache)
+            if (value.Length > metaData.MaxPayloadSizeForTextCache)
             {
                 if (DontThrowOnValueOverflow) return;
-                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxSizeForTextCache);
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxPayloadSizeForTextCache);
             }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             ExecuteNonQueryCommand(comm);
@@ -283,11 +282,11 @@ namespace SqlServerCacheClient
         {
             logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
-            if (compressedBlob.Length > metaData.MaxSizeForBinaryCache)
+            if (compressedBlob.Length > metaData.MaxPayloadSizeForBinaryCache)
             {
                 if (DontThrowOnValueOverflow) return;
                 throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
-                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxSizeForBinaryCache);
+                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxPayloadSizeForBinaryCache);
             }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
@@ -332,11 +331,11 @@ namespace SqlServerCacheClient
         {
             logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
-            if (compressedBlob.Length > metaData.MaxSizeForBinaryCache)
+            if (compressedBlob.Length > metaData.MaxPayloadSizeForBinaryCache)
             {
                 if (DontThrowOnValueOverflow) return;
                 throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
-                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxSizeForBinaryCache);
+                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxPayloadSizeForBinaryCache);
             }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             ExecuteNonQueryCommand(comm);
@@ -549,7 +548,7 @@ namespace SqlServerCacheClient
 
         private byte[] CompressBytes(byte[] bytes)
         {
-            if (bytes.Length <= metaData.MaxSizeForBinaryCache || !CompressBinaryIfNecessary)
+            if (bytes.Length <= metaData.MaxPayloadSizeForBinaryCache || !CompressBinaryIfNecessary)
             {
                 return bytes;
             }

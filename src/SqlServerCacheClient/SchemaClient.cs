@@ -47,15 +47,17 @@ INDEX [IX_CounterCache_Expires] NONCLUSTERED ( [Expires] ASC)
 	[IsDebugSchema] bit NOT NULL,
 	[CacheIsEnabled] bit NOT NULL,
 	[DefaultTTLinSeconds] bigint NOT NULL,
-	[MaxRowCountForAllTables] bigint NOT NULL,
-	[MaxSizeForTextCache] bigint NOT NULL,
-	[MaxSizeForBinaryCache] bigint NOT NULL,
+	[MaxRowCountCounterCache] bigint NOT NULL,
+    [MaxRowCountBinaryCache] bigint NOT NULL,
+    [MaxRowCountTextCache] bigint NOT NULL,
+	[MaxPayloadSizeForTextCache] bigint NOT NULL,
+	[MaxPayloadSizeForBinaryCache] bigint NOT NULL,
     [LastRunDeleteExpiredCache] datetime2 NOT NULL,
 	CONSTRAINT [imPK_Meta_Pk] PRIMARY KEY NONCLUSTERED HASH ([Pk])WITH ( BUCKET_COUNT = 1)
 )WITH ( MEMORY_OPTIMIZED = ON , DURABILITY = SCHEMA_AND_DATA ); ";
 
-        public const string InsertRowMetaTableFormatString = @"Insert into [{0}].Meta (Pk, IsDebugSchema, CacheIsEnabled, DefaultTTLinSeconds, MaxRowCountForAllTables, MaxSizeForTextCache, MaxSizeForBinaryCache, LastRunDeleteExpiredCache) 
-    values (@Pk,@IsDebugSchema, @CacheIsEnabled, @DefaultTTLinSeconds, @MaxRowCountForAllTables, @MaxSizeForTextCache, @MaxSizeForBinaryCache, @LastRunDeleteExpiredCache); ";
+        public const string InsertRowMetaTableFormatString = @"Insert into [{0}].Meta (Pk, IsDebugSchema, CacheIsEnabled, DefaultTTLinSeconds, MaxRowCountCounterCache,MaxRowCountBinaryCache,MaxRowCountTextCache, MaxPayloadSizeForTextCache, MaxPayloadSizeForBinaryCache, LastRunDeleteExpiredCache) 
+    values (@Pk,@IsDebugSchema, @CacheIsEnabled, @DefaultTTLinSeconds, @MaxRowCountCounterCache,@MaxRowCountBinaryCache,@MaxRowCountTextCache, @MaxPayloadSizeForTextCache, @MaxPayloadSizeForBinaryCache, @LastRunDeleteExpiredCache); ";
 
         public const string DropStoredProcsFormatString = @"drop procedure [{0}].[DecrementCounter];
 drop procedure [{0}].[DeleteCacheBinary];
@@ -160,16 +162,36 @@ BEGIN ATOMIC
    delete [{0}].[CounterCache];
 END";
 
-        public const string CreateSPDeleteExpiredCache = @"create procedure [{0}].[DeleteExpiredCache]
-WITH  NATIVE_COMPILATION, SCHEMABINDING, EXECUTE AS OWNER  AS
-BEGIN ATOMIC
-   WITH (TRANSACTION ISOLATION LEVEL=SNAPSHOT, LANGUAGE='us_english')
+        public const string CreateSPDeleteExpiredCache = @"create procedure [{0}].[DeleteExpiredCache] AS
+BEGIN
    delete [{0}].CounterCache where Expires <= GETUTCDATE();
    delete [{0}].BinaryCache where Expires <= GETUTCDATE();
    delete [{0}].TextCache where Expires <= GETUTCDATE();
+
+    declare @rowcount bigint;
+    set @rowcount = (select count(*) from [{0}].BinaryCache);
+    set @rowcount = (select @rowcount - MaxRowCountBinaryCache from [{0}].Meta);
+    while (@rowcount > 0) BEGIN
+	    ;with temp as (select top 10 * from [{0}].BinaryCache order by Expires) delete from temp;
+	    set @rowcount = @rowcount - 10;
+    END
+
+    set @rowcount = (select count(*) from [{0}].CounterCache);
+    set @rowcount = (select @rowcount - MaxRowCountCounterCache from [{0}].Meta);
+    while (@rowcount > 0) BEGIN
+	    ;with temp as (select top 10 * from [{0}].CounterCache order by Expires) delete from temp;
+	    set @rowcount = @rowcount - 10;
+    END
+
+    set @rowcount = (select count(*) from [{0}].TextCache);
+    set @rowcount = (select @rowcount - MaxRowCountTextCache from [{0}].Meta);
+    while (@rowcount > 0) BEGIN
+	    ;with temp as (select top 10 * from [{0}].TextCache order by Expires) delete from temp;
+	    set @rowcount = @rowcount - 10;
+    END
 END";
 
-        //TODO create scheduled task to run DeleteExpiredCache, and populate Meta
+        //TODO create scheduled task to run DeleteExpiredCache
 
         #endregion
 
@@ -229,9 +251,11 @@ END";
                 comm.Parameters.AddWithValue("IsDebugSchema", false);
                 comm.Parameters.AddWithValue("CacheIsEnabled", true);
                 comm.Parameters.AddWithValue("DefaultTTLinSeconds", (long) defaultTimeToLive.TotalSeconds);
-                comm.Parameters.AddWithValue("MaxRowCountForAllTables", 10000);
-                comm.Parameters.AddWithValue("MaxSizeForTextCache", TextMaxLength);
-                comm.Parameters.AddWithValue("MaxSizeForBinaryCache", BlobMaxLength);
+                comm.Parameters.AddWithValue("MaxRowCountCounterCache", 20000);
+                comm.Parameters.AddWithValue("MaxRowCountBinaryCache", 10000);
+                comm.Parameters.AddWithValue("MaxRowCountTextCache", 10000);
+                comm.Parameters.AddWithValue("MaxPayloadSizeForTextCache", TextMaxLength);
+                comm.Parameters.AddWithValue("MaxPayloadSizeForBinaryCache", BlobMaxLength);
                 comm.Parameters.AddWithValue("LastRunDeleteExpiredCache", DateTime.UtcNow);
                 comm.ExecuteNonQuery();
 
@@ -241,6 +265,7 @@ END";
 
         public void DropTables(Action<string> updateStatus)
         {
+            MetaDataManager.RemovePollingForCache(new MetaData(connectionString, schemaName));
             using (var conn = new SqlConnection(connectionString))
             {
                 conn.Open();
