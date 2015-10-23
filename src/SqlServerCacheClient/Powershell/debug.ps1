@@ -44,12 +44,12 @@ function VerifyBinaryCache($expectedValue) {
 }
 
 Write-Host "Testing binary cache."
-Set-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1" -Value $binaryObject
+Set-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1" -Value $binaryObject -Verbose
 VerifyBinaryCache $binaryObject
 $binaryObject.hooey = 124
-Set-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1" -Value $binaryObject
+Set-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1" -Value $binaryObject -Verbose
 VerifyBinaryCache $binaryObject
-Remove-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1"
+Remove-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1" -Verbose
 $object = Get-SqlCacheObject -SchemaName "cache" -Database "Cache" -Key "binKey1"
 if ($object) { throw "invalid value for binary cache." }
 Write-Host "Binary cache test successful."

@@ -189,6 +189,8 @@ BEGIN
 	    ;with temp as (select top 10 * from [{0}].TextCache order by Expires) delete from temp;
 	    set @rowcount = @rowcount - 10;
     END
+
+    update [{0}].Meta set LastRunDeleteExpiredCache = GETUTCDATE();
 END";
 
         //TODO create scheduled task to run DeleteExpiredCache
