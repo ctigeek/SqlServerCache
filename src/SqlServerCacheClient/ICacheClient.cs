@@ -8,6 +8,7 @@ namespace SqlServerCacheClient
         bool CompressBinaryIfNecessary { get; set; }
         bool DontThrowOnValueOverflow { get; set; }
         string SchemaName { get; }
+        bool CacheIsEnabled { get; }
         Task SetCounterAsync(string key, long count);
         Task SetCounterAsync(string key, long count, TimeSpan timeToLive);
         void SetCounter(string key, long count);

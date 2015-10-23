@@ -2,7 +2,6 @@
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -21,8 +20,6 @@ namespace SqlServerCacheClient
 
         private const int CommandTimeout = 5;
         public const string DefaultSchemaName = "cache";
-        public const int BlobMaxLength = 7980;
-        public const int TextMaxLength = 3950;
         public readonly string CacheKeyPrefix;
         private readonly string connectionString;
         private readonly MetaData metaData;
@@ -30,6 +27,7 @@ namespace SqlServerCacheClient
         public bool CompressBinaryIfNecessary { get; set; }
         public bool DontThrowOnValueOverflow { get; set; }
         public string SchemaName { get; }
+        public bool CacheIsEnabled { get { return !metaData.CacheIsEnabled; } }
 
         public CacheClient(string connectionString, string cacheKeyPrefix, string schemaName, MetaData metaData)
         {
@@ -192,10 +190,10 @@ namespace SqlServerCacheClient
         public async Task SetTextAsync(string key, string value, TimeSpan timeToLive)
         {
             logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
-            if (value.Length > TextMaxLength)
+            if (value.Length > metaData.MaxSizeForTextCache)
             {
                 if (DontThrowOnValueOverflow) return;
-                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxSizeForTextCache);
             }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
@@ -209,10 +207,10 @@ namespace SqlServerCacheClient
         public void SetText(string key, string value, TimeSpan timeToLive)
         {
             logger.DebugFormat("Cache {0}: Set Text {1}{2} = {3}, TTL={4}", SchemaName, CacheKeyPrefix, key, value, timeToLive);
-            if (value.Length > TextMaxLength)
+            if (value.Length > metaData.MaxSizeForTextCache)
             {
                 if (DontThrowOnValueOverflow) return;
-                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + TextMaxLength.ToString());
+                throw new ArgumentOutOfRangeException(nameof(value), value.Length, "The maximum text size that can be saved is " + metaData.MaxSizeForTextCache);
             }
             var comm = BuildSaveCacheTextCommand(key, value, timeToLive);
             ExecuteNonQueryCommand(comm);
@@ -285,11 +283,11 @@ namespace SqlServerCacheClient
         {
             logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
-            if (compressedBlob.Length > BlobMaxLength)
+            if (compressedBlob.Length > metaData.MaxSizeForBinaryCache)
             {
                 if (DontThrowOnValueOverflow) return;
                 throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
-                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
+                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxSizeForBinaryCache);
             }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             await ExecuteNonQueryCommandAsync(comm);
@@ -334,11 +332,11 @@ namespace SqlServerCacheClient
         {
             logger.DebugFormat("Cache {0}: Set Binary {1}{2}  TTL={3}", SchemaName, CacheKeyPrefix, key, timeToLive);
             var compressedBlob = CompressBytes(blob);
-            if (compressedBlob.Length > BlobMaxLength)
+            if (compressedBlob.Length > metaData.MaxSizeForBinaryCache)
             {
                 if (DontThrowOnValueOverflow) return;
                 throw new ArgumentOutOfRangeException(nameof(blob), compressedBlob.Length,
-                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + BlobMaxLength.ToString());
+                    "The binary blob is too big, (even when compressed if enabled.) Maximum size binary blob that can be saved is " + metaData.MaxSizeForBinaryCache);
             }
             var comm = BuildSaveCacheBinaryCommand(key, compressedBlob, timeToLive);
             ExecuteNonQueryCommand(comm);
@@ -449,6 +447,8 @@ namespace SqlServerCacheClient
 
         private void ExecuteNonQueryCommand(SqlCommand command)
         {
+            if (!metaData.CacheIsEnabled) return;
+            
             try
             {
                 using (var conn = new SqlConnection(connectionString))
@@ -461,12 +461,13 @@ namespace SqlServerCacheClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.ToString());
+                logger.ErrorFormat("Error while executing query: {0} \r\n {1}", command.CommandText, ex);
             }
         }
 
         private async Task ExecuteNonQueryCommandAsync(SqlCommand command)
         {
+            if (!metaData.CacheIsEnabled) return;
             try
             {
                 using (var conn = new SqlConnection(connectionString))
@@ -479,12 +480,13 @@ namespace SqlServerCacheClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.ToString());
+                logger.ErrorFormat("Error while executing query: {0} \r\n {1}", command.CommandText, ex);
             }
         }
 
         private object ExecuteScalarCommand(SqlCommand command)
         {
+            if (!metaData.CacheIsEnabled) return null;
             try
             {
                 using (var conn = new SqlConnection(connectionString))
@@ -498,13 +500,14 @@ namespace SqlServerCacheClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.ToString());
+                logger.ErrorFormat("Error while executing query: {0} \r\n {1}", command.CommandText, ex);
                 return null;
             }
         }
 
         private async Task<object> ExecuteScalarCommandAsync(SqlCommand command)
         {
+            if (!metaData.CacheIsEnabled) return null;
             try
             {
                 using (var conn = new SqlConnection(connectionString))
@@ -518,7 +521,7 @@ namespace SqlServerCacheClient
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.ToString());
+                logger.ErrorFormat("Error while executing query: {0} \r\n {1}", command.CommandText, ex);
                 return null;
             }
         }
@@ -546,7 +549,7 @@ namespace SqlServerCacheClient
 
         private byte[] CompressBytes(byte[] bytes)
         {
-            if (bytes.Length <= BlobMaxLength || !CompressBinaryIfNecessary)
+            if (bytes.Length <= metaData.MaxSizeForBinaryCache || !CompressBinaryIfNecessary)
             {
                 return bytes;
             }

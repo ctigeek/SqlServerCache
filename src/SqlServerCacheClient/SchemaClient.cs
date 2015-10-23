@@ -6,6 +6,9 @@ namespace SqlServerCacheClient
 {
     public class SchemaClient
     {
+        public const int BlobMaxLength = 7980;
+        public const int TextMaxLength = 3950;
+
         #region Format Strings
 
         public const string CreateSchemaNameFormatString = "create schema [{0}];";
@@ -208,10 +211,10 @@ END";
             {
                 conn.Open();
                 updateStatus?.Invoke("Creating TextCache table.");
-                var comm = new SqlCommand(string.Format(CreateTextCacheTableFormatString, schemaName, CacheClient.TextMaxLength), conn);
+                var comm = new SqlCommand(string.Format(CreateTextCacheTableFormatString, schemaName, TextMaxLength), conn);
                 comm.ExecuteNonQuery();
                 updateStatus?.Invoke("Creating BinaryCache table.");
-                comm = new SqlCommand(string.Format(CreateBinaryCacheTableFormatString, schemaName, CacheClient.BlobMaxLength), conn);
+                comm = new SqlCommand(string.Format(CreateBinaryCacheTableFormatString, schemaName, BlobMaxLength), conn);
                 comm.ExecuteNonQuery();
                 updateStatus?.Invoke("Creating CounterCache table.");
                 comm = new SqlCommand(string.Format(CreateCounterCacheTableFormatString, schemaName), conn);
@@ -227,8 +230,8 @@ END";
                 comm.Parameters.AddWithValue("CacheIsEnabled", true);
                 comm.Parameters.AddWithValue("DefaultTTLinSeconds", (long) defaultTimeToLive.TotalSeconds);
                 comm.Parameters.AddWithValue("MaxRowCountForAllTables", 10000);
-                comm.Parameters.AddWithValue("MaxSizeForTextCache", CacheClient.TextMaxLength);
-                comm.Parameters.AddWithValue("MaxSizeForBinaryCache", CacheClient.BlobMaxLength);
+                comm.Parameters.AddWithValue("MaxSizeForTextCache", TextMaxLength);
+                comm.Parameters.AddWithValue("MaxSizeForBinaryCache", BlobMaxLength);
                 comm.Parameters.AddWithValue("LastRunDeleteExpiredCache", DateTime.UtcNow);
                 comm.ExecuteNonQuery();
 

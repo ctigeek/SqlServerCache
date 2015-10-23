@@ -59,6 +59,7 @@
     <Compile Include="Logging\ConsoleLogger.cs" />
     <Compile Include="Logging\ILogger.cs" />
     <Compile Include="Logging\Log4NetWrapper.cs" />
+    <Compile Include="Logging\LoggingVerbosity.cs" />
     <Compile Include="Logging\LogManager.cs" />
     <Compile Include="Logging\NlogWrapper.cs" />
     <Compile Include="Logging\NullLogger.cs" />
@@ -88,6 +89,11 @@
     </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>del $(ProjectDir)$(OutDir)log4net.*
+del $(ProjectDir)$(OutDir)NLog.*
+</PostBuildEvent>
+  </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

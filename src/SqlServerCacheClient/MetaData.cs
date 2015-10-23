@@ -21,8 +21,8 @@ namespace SqlServerCacheClient
             CacheIsEnabled = cacheIsEnabled;
             DefaultTimeToLive = defaultTimeToLive;
             MaxRowCountForAllTables = maxRowCountForAllTables;
-            MaxSizeForBinaryCache = CacheClient.BlobMaxLength;
-            MaxSizeForTextCache = CacheClient.TextMaxLength;
+            MaxSizeForBinaryCache = SchemaClient.BlobMaxLength;
+            MaxSizeForTextCache = SchemaClient.TextMaxLength;
         }
 
         public bool IsDebugSchema { get; internal set; }

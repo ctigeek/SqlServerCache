@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using SqlServerCacheClient.Logging;
@@ -28,7 +27,8 @@ namespace SqlServerCacheClient
                 var metaData = metaDataList.FirstOrDefault(mdl => mdl.ConnectionString == connectionString && mdl.SchemaName == schemaName);
                 if (metaData == null)
                 {
-                    metaData = LoadCacheData(connectionString, schemaName);
+                    metaData = new MetaData(connectionString, schemaName);
+                    LoadCacheData(metaData);
                     metaDataList.Add(metaData);
                 }
                 return metaData;
@@ -43,9 +43,7 @@ namespace SqlServerCacheClient
                 {
                     foreach (var metaData in metaDataList.ToArray())
                     {
-                        var newMetaData = LoadCacheData(metaData.ConnectionString, metaData.SchemaName);
-                        metaDataList.Add(newMetaData);
-                        metaDataList.Remove(metaData);
+                        LoadCacheData(metaData);
                     }
                 }
                 catch(Exception ex)
@@ -55,15 +53,14 @@ namespace SqlServerCacheClient
             }
         }
 
-        private static MetaData LoadCacheData(string connectionString, string schemaName)
+        private static void LoadCacheData(MetaData metaData)
         {
             try
             {
-                var metaData = new MetaData(connectionString, schemaName);
-                using (var conn = new SqlConnection(connectionString))
+                using (var conn = new SqlConnection(metaData.ConnectionString))
                 {
                     conn.Open();
-                    var comm = new SqlCommand($"select * from [{schemaName}].Meta where Pk=@Pk;", conn);
+                    var comm = new SqlCommand($"select * from [{metaData.SchemaName}].Meta where Pk=@Pk;", conn);
                     comm.Parameters.AddWithValue("Pk", 1);
                     using (var reader = comm.ExecuteReader())
                     {
@@ -83,12 +80,11 @@ namespace SqlServerCacheClient
                         }
                     }
                 }
-                return metaData;
             }
             catch (Exception ex)
             {
                 //TODO: is there's a problem reading the meta table, we should probably mark the cache as disabled.
-                logger.ErrorFormat("Error while loading MetaData for cache {0}. {1}", schemaName, ex);
+                logger.ErrorFormat("Error while loading MetaData for cache {0}. {1}", metaData.SchemaName, ex);
                 throw;
             }
         }
