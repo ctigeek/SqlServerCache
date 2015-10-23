@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("SqlServerCacheClient")]
-[assembly: AssemblyDescription("Client for using Sql Server as an in-memory cache store.")]
+[assembly: AssemblyDescription("Client for using Sql Server as an in-memory cache store. USE AT YOUR OWN RISK.")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Steven Swenson")]
 [assembly: AssemblyProduct("SqlServerCacheClient")]
-[assembly: AssemblyCopyright("Copyright ©  2015")]
+[assembly: AssemblyCopyright("Released under the MIT license.")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.8.0.0")]
-[assembly: AssemblyFileVersion("0.8.0.0")]
+[assembly: AssemblyVersion("0.9.0.0")]
+[assembly: AssemblyFileVersion("0.9.0.0")]

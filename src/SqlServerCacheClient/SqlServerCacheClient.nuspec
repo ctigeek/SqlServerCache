@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>SqlServerCacheClient</id>
+    <version>$version$</version>
+    <title>SqlServerCacheClient</title>
+    <authors>$author$</authors>
+    <owners>$author$</owners>
+    <licenseUrl>https://opensource.org/licenses/MIT</licenseUrl>
+    <projectUrl>https://github.com/ctigeek/SqlServerCache</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>$description$</description>
+    <releaseNotes>BETA!</releaseNotes>
+    <copyright>Released under the MIT license.</copyright>
+    <tags>SqlServer Cache memcache memcached </tags>
+  </metadata>
+</package>
