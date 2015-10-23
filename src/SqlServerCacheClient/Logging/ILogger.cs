@@ -9,6 +9,7 @@ namespace SqlServerCacheClient.Logging
         bool IsWarnEnabled { get; }
         bool IsErrorEnabled { get; }
         bool IsFatalEnabled { get; }
+        void SetVerbosity(LoggingVerbosity verbosity);
         void Debug(object message);
         void Debug(object message, Exception exception);
         void DebugFormat(string format, params object[] args);

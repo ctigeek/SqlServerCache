@@ -23,6 +23,28 @@ namespace SqlServerCacheClient.Logging
             this.iLog = log4net.LogManager.GetLogger(type);
         }
 
+        public void SetVerbosity(LoggingVerbosity verbosity)
+        {
+            switch (verbosity)
+            {
+                case LoggingVerbosity.Debug :
+                    ((log4net.Repository.Hierarchy.Logger)iLog.Logger).Level = log4net.Core.Level.Debug;
+                    break;
+                case LoggingVerbosity.Info:
+                    ((log4net.Repository.Hierarchy.Logger)iLog.Logger).Level = log4net.Core.Level.Info;
+                    break;
+                case LoggingVerbosity.Warn:
+                    ((log4net.Repository.Hierarchy.Logger) iLog.Logger).Level = log4net.Core.Level.Warn;
+                    break;
+                case LoggingVerbosity.Error:
+                    ((log4net.Repository.Hierarchy.Logger) iLog.Logger).Level = log4net.Core.Level.Error;
+                    break;
+                case LoggingVerbosity.Fatal:
+                    ((log4net.Repository.Hierarchy.Logger) iLog.Logger).Level = log4net.Core.Level.Fatal;
+                    break;
+            }
+        }
+
         public bool IsDebugEnabled
         {
             get { return iLog.IsDebugEnabled; }

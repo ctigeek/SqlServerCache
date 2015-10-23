@@ -35,6 +35,10 @@ namespace SqlServerCacheClient.Logging
             get { return false; }
         }
 
+        public void SetVerbosity(LoggingVerbosity verbosity)
+        {
+        }
+
         public void Debug(object message)
         {
         }

@@ -1,4 +1,5 @@
 using System;
+using NLog;
 
 namespace SqlServerCacheClient.Logging
 {
@@ -34,6 +35,35 @@ namespace SqlServerCacheClient.Logging
         public bool IsWarnEnabled
         {
             get { return IsWarnEnabled; }
+        }
+
+        public void SetVerbosity(LoggingVerbosity verbosity)
+        {
+            var logLevel = LogLevel.Off;
+            switch (verbosity)
+            {
+                case LoggingVerbosity.Debug:
+                    logLevel = LogLevel.Debug;
+                    break;
+                case LoggingVerbosity.Info:
+                    logLevel = LogLevel.Info;
+                    break;
+                case LoggingVerbosity.Warn:
+                    logLevel = LogLevel.Warn;
+                    break;
+                case LoggingVerbosity.Error:
+                    logLevel = LogLevel.Error;
+                    break;
+                case LoggingVerbosity.Fatal:
+                    logLevel = LogLevel.Fatal;
+                    break;
+            }
+            foreach (var rule in NLog.LogManager.Configuration.LoggingRules)
+            {
+                rule.EnableLoggingForLevel(logLevel);
+            }
+
+            NLog.LogManager.ReconfigExistingLoggers();
         }
 
         public void Debug(object message)
